@@ -8,6 +8,7 @@ import scala.concurrent.{
   ExecutionContext,
   Future,
   Promise }
+import scala.concurrent.duration._
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -58,6 +59,11 @@ class RMQChannelImpl (
   def close () : Unit =
     underlying.foreach { _.close() }
 
+  def consumerCount (queue : RMQQueue) : Future[Long] =
+    mutex {
+      channel.consumerCount(queue.name)
+    }
+
   def declareExchange (exchange : RMQExchange) : Future[Unit] =
     mutex {
       exchange match {
@@ -95,6 +101,11 @@ class RMQChannelImpl (
       channel.addConfirmListener(new ConfirmListenerImpl(publisherConfirms))
       channel.confirmSelect()
       publisherConfirmsEnabled.set(true)
+    }
+
+  def messageCount (queue : RMQQueue) : Future[Long] =
+    mutex {
+      channel.messageCount(queue.name)
     }
 
   def setQos (qos : Int) : Future[Unit] =
@@ -143,6 +154,38 @@ class RMQChannelImpl (
       }
     }.flatMap {
       x => x
+    }
+
+  def txCommit () : Future[Unit] =
+    mutex { channel.txCommit() }
+
+  def txRollback () : Future[Unit] =
+    mutex { channel.txRollback() }
+
+  def txSelect () : Future[Unit] =
+    mutex { channel.txSelect() }
+
+  def waitConfirms () : Future[Boolean] =
+    waitConfirms(0.seconds)
+
+  def waitConfirms (timeout : Duration) : Future[Boolean] =
+    mutex {
+      if (!publisherConfirmsEnabled.get())
+        throw new IllegalStateException("Publisher confirms not enabled")
+
+      publisherConfirms.toArray.asInstanceOf[Array[PublisherConfirm]]
+    }.flatMap { confirms =>
+
+      val sequenced = for {
+        _ <- Future.traverse(confirms.toVector)(_.promise.future)
+      } yield true
+
+      if (timeout.length == 0)
+        sequenced
+      else
+        Future.firstCompletedOf(List(
+          Future.delay(timeout).map(_ => false),
+          sequenced))
     }
 
 }

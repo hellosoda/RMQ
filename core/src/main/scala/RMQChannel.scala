@@ -1,6 +1,7 @@
 package com.hellosoda.rmq
 import com.rabbitmq.client._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 trait RMQChannel extends java.io.Closeable {
 
@@ -34,13 +35,15 @@ trait RMQChannel extends java.io.Closeable {
   /** Close the underlying resource. */
   def close () : Unit
 
+  def consumerCount (queue : RMQQueue) : Future[Long]
+
   def declareExchange (exchange : RMQExchange) : Future[Unit]
 
   def declareQueue (queue : RMQQueue) : Future[Unit]
 
   def enablePublisherConfirms () : Future[Unit]
 
-  def setQos (qos : Int) : Future[Unit]
+  def messageCount (queue : RMQQueue) : Future[Long]
 
   def publish [T] (
     exchange   : RMQExchange,
@@ -49,5 +52,17 @@ trait RMQChannel extends java.io.Closeable {
     body       : T)(implicit
     codec      : RMQCodec[T]
   ) : Future[Unit]
+
+  def setQos (qos : Int) : Future[Unit]
+
+  def txCommit () : Future[Unit]
+
+  def txRollback () : Future[Unit]
+
+  def txSelect () : Future[Unit]
+
+  def waitConfirms () : Future[Boolean]
+
+  def waitConfirms (timeout : Duration) : Future[Boolean]
 
 }
