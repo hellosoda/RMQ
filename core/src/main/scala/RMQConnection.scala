@@ -36,7 +36,13 @@ object RMQConnection {
   def open (
     conn : URI)(implicit
     ec   : ExecutionContext
-  ) : RMQConnection =
-    ???
+  ) : RMQConnection = {
+    val connection = Try {
+      val (factory, addrs) = AMQPAddressParser.parseURI(conn)
+      factory.newConnection(addrs)
+    }
+
+    new RMQConnection(connection)
+  }
 
 }
