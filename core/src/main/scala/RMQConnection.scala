@@ -5,16 +5,38 @@ import java.net.URI
 import scala.concurrent.{
   ExecutionContext,
   Future }
+import scala.util.Try
 
-class RMQConnection (
-  val connection : Connection)(implicit
-  val ec         : ExecutionContext)
+// TODO: Wrap as Try[Connection]?
+
+class RMQConnection private (
+  private val underlying : Try[Connection])(implicit
+  private val ec         : ExecutionContext)
     extends java.io.Closeable {
 
-  def close () : Unit =
-    connection.close()
+  def connection : Connection =
+    underlying.get
 
-  def createChannel () : Future[RMQChannel] =
-    Future.wrap { new RMQChannel(connection.createChannel()) }
+  def close () : Unit =
+    underlying.foreach { _.close() }
+
+  def createChannel () : RMQChannel =
+    new RMQChannel(Try(connection.createChannel()))
+
+}
+
+object RMQConnection {
+
+  def from (
+    conn : Connection)(implicit
+    ec   : ExecutionContext
+  ) : RMQConnection =
+    new RMQConnection(Try(conn))
+
+  def open (
+    conn : URI)(implicit
+    ec   : ExecutionContext
+  ) : RMQConnection =
+    ???
 
 }
