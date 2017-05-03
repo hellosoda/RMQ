@@ -65,7 +65,12 @@ class RMQChannelImpl (
           channel.exchangeDeclarePassive(name)
 
         case decl: RMQExchange.Declare =>
-          ???
+          channel.exchangeDeclare(
+            decl.name,
+            decl.kind.native,
+            decl.durable,
+            decl.autoDelete,
+            decl.arguments.mapValues(_.asInstanceOf[AnyRef]).asJava)
       }
     }
 
@@ -76,7 +81,12 @@ class RMQChannelImpl (
           channel.queueDeclarePassive(name)
 
         case decl: RMQQueue.Declare =>
-          ???
+          channel.queueDeclare(
+            decl.name,
+            decl.durable,
+            decl.exclusive,
+            decl.autoDelete,
+            decl.arguments.mapValues(_.asInstanceOf[AnyRef]).asJava)
       }
     }
 
