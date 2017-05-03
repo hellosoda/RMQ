@@ -61,8 +61,10 @@ trait RMQChannel extends java.io.Closeable {
 
   def txSelect () : Future[Unit]
 
+  /** NO-OP: `publish` always awaits confirmation. **/
   def waitConfirms () : Future[Boolean]
 
+  /** NO-OP: `publish` always awaits confirmation. **/
   def waitConfirms (timeout : Duration) : Future[Boolean]
 
 }

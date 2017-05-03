@@ -173,19 +173,7 @@ class RMQChannelImpl (
       if (!publisherConfirmsEnabled.get())
         throw new IllegalStateException("Publisher confirms not enabled")
 
-      publisherConfirms.toArray.asInstanceOf[Array[PublisherConfirm]]
-    }.flatMap { confirms =>
-
-      val sequenced = for {
-        _ <- Future.traverse(confirms.toVector)(_.promise.future)
-      } yield true
-
-      if (timeout.length == 0)
-        sequenced
-      else
-        Future.firstCompletedOf(List(
-          Future.delay(timeout).map(_ => false),
-          sequenced))
+      true
     }
 
 }
