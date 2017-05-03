@@ -21,7 +21,7 @@ class RMQConnection private (
     underlying.foreach { _.close() }
 
   def createChannel () : RMQChannel =
-    new RMQChannel(Try(connection.createChannel()))
+    new RMQChannelImpl(Try(connection.createChannel()))
 
 }
 
