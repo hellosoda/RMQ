@@ -11,16 +11,25 @@ lazy val defaults = Seq(
     "-Ydelambdafy:method",
     "-target:jvm-1.8"))
 
-lazy val deps = libraryDependencies ++= Seq(
+lazy val dependencies = libraryDependencies ++= Seq(
   "com.rabbitmq" % "amqp-client" % "4.1.0").
   map { _.exclude("ch.qos.logback", "logback-classic") }
 
 lazy val root =
   (project in file(".")).
   settings(defaults: _*).
-  aggregate(core)
+  aggregate(core).
+  aggregate(`play-json`)
 
 lazy val core =
   (project in file("core")).
   settings(defaults: _*).
-  settings(deps: _*)
+  settings(dependencies: _*)
+
+lazy val `play-json` =
+  (project in file("play-json")).
+  settings(defaults: _*).
+  settings(libraryDependencies ++= Seq(
+    "com.typesafe.play" %% "play-json" % "2.4.0")).
+  dependsOn(core).
+  aggregate(core)
