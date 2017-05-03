@@ -100,14 +100,15 @@ class RMQChannelImpl (
     codec      : RMQCodec[T]
   ) : Future[Unit] =
     mutex {
-      val pc : PublisherConfirm =
-        if (!publisherConfirmsEnabled.get()) null
-        else PublisherConfirm(
+      val pc : Option[PublisherConfirm] =
+        if (!publisherConfirmsEnabled.get()) None
+        else Some(PublisherConfirm(
           seqNo   = channel.getNextPublishSeqNo(),
-          promise = Promise[Unit]())
+          promise = Promise[Unit]()))
 
-      if (pc != null)
+      pc.foreach { pc =>
         publisherConfirms.add(pc)
+      }
 
       try {
         val contentType = properties.contentType orElse codec.contentType
@@ -119,11 +120,11 @@ class RMQChannelImpl (
             copy(contentType = contentType).
             asBasicProperties,
           codec.encode(body))
-        if (pc != null) pc.promise.future
-        else Future.unit
+
+        pc.map(_.promise.future).getOrElse(Future.unit)
       } catch {
         case NonFatal(error) =>
-          if (pc != null) {
+          pc.foreach { pc =>
             publisherConfirms.remove(pc)
             pc.promise.tryFailure(error)
           }
