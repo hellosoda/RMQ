@@ -7,31 +7,28 @@ import scala.concurrent.{
   Future }
 import scala.util.Try
 
-// TODO: Wrap as Try[Connection]?
+trait RMQConnection extends java.io.Closeable {
 
-class RMQConnection private (
-  private val underlying : Try[Connection])(implicit
-  private val ec         : ExecutionContext)
-    extends java.io.Closeable {
+  /** Return the underlying [[com.rabbitmq.client.Connection]]
+    *
+    * **Public API for enrichment purposes.** Raise an exception if
+    * an error occured when constructing the Connection.
+    */
+  def connection : Connection
 
-  def connection : Connection =
-    underlying.get
+  /** Close underlying resources. **/
+  def close () : Unit
 
-  def close () : Unit =
-    underlying.foreach { _.close() }
-
-  def createChannel () : RMQChannel =
-    new RMQChannelImpl(Try(connection.createChannel()))
-
+  def createChannel () : RMQChannel
 }
 
 object RMQConnection {
 
-  def from (
+  def fromConnection (
     conn : Connection)(implicit
     ec   : ExecutionContext
   ) : RMQConnection =
-    new RMQConnection(Try(conn))
+    new RMQConnectionImpl(Try(conn))
 
   def open (
     conn : URI)(implicit
@@ -42,7 +39,7 @@ object RMQConnection {
       factory.newConnection(addrs)
     }
 
-    new RMQConnection(connection)
+    new RMQConnectionImpl(connection)
   }
 
 }
