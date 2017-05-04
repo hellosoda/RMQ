@@ -35,6 +35,13 @@ trait RMQChannel extends java.io.Closeable {
   /** Close the underlying resource. */
   def close () : Unit
 
+  def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit]
+
+  def consume[T] (
+    queue    : RMQQueue,
+    consumer : RMQConsumer[T]
+  ) : Future[RMQConsumerHandle[T]]
+
   def consumerCount (queue : RMQQueue) : Future[Long]
 
   def declareExchange (exchange : RMQExchange) : Future[Unit]

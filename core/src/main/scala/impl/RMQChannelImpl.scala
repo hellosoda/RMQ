@@ -51,6 +51,11 @@ class RMQChannelImpl (
         Map.empty.asJava)
     }
 
+  def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit] =
+    mutex {
+      channel.basicCancel(consumerTag.toString)
+    }
+
   def channel : Channel =
     underlying.get
 
@@ -59,6 +64,27 @@ class RMQChannelImpl (
 
   def close () : Unit =
     underlying.foreach { _.close() }
+
+  def consume[T] (
+    queue    : RMQQueue,
+    consumer : RMQConsumer[T]
+  ) : Future[RMQConsumerHandle[T]] =
+    mutex {
+      val consumerTag = RMQConsumerTag(
+        channel.basicConsume(
+          queue.name,
+          false, // autoAck
+          "", // consumerTag
+          false, // noLocal
+          false, // exclusive
+          Map.empty.asJava, // arguments
+          new ConsumerAdapter(this, consumer)))
+
+      new RMQConsumerHandle[T](
+        consumerTag = consumerTag,
+        channel = this,
+        consumer = consumer)
+    }
 
   def consumerCount (queue : RMQQueue) : Future[Long] =
     mutex {
