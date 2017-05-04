@@ -13,7 +13,8 @@ import scala.util.Try
 import scala.util.control.NonFatal
 
 class RMQChannelImpl (
-  private val underlying : Try[Channel])(implicit
+  private val underlying : Try[Channel],
+  private val connection : RMQConnection)(implicit
   private val ec         : ExecutionContext)
     extends RMQChannel {
 
@@ -131,27 +132,27 @@ class RMQChannelImpl (
         publisherConfirms.add(pc)
       }
 
-      try {
-        val contentType = properties.contentType orElse codec.contentType
+      val props = properties.copy(
+        contentType = properties.contentType orElse codec.contentType)
 
-        channel.basicPublish(
-          exchange.name,
-          routingKey.toString,
-          properties.
-            copy(contentType = contentType).
-            asBasicProperties,
-          codec.encode(body))
+      connection.
+        waitUnblocked().
+        flatMap { _ =>
+          channel.basicPublish(
+            exchange.name,
+            routingKey.toString,
+            props.asBasicProperties,
+            codec.encode(body))
+          pc.map(_.promise.future).getOrElse(Future.unit)
+        }.recoverWith {
+          case NonFatal(error) =>
+            pc.foreach { pc =>
+              publisherConfirms.remove(pc)
+              pc.promise.tryFailure(error)
+            }
 
-        pc.map(_.promise.future).getOrElse(Future.unit)
-      } catch {
-        case NonFatal(error) =>
-          pc.foreach { pc =>
-            publisherConfirms.remove(pc)
-            pc.promise.tryFailure(error)
-          }
-
-          Future.failed(error)
-      }
+            Future.failed(error)
+        }
     }.flatMap {
       x => x
     }

@@ -9,7 +9,7 @@ import scala.util.Try
 
 private[rmq] object FutureOps {
 
-  val unit = Future.successful(())
+  final val unit = Future.successful(())
 
   def wrap[T] (f : => T) : Future[T] =
     Future.fromTry { Try { f }}

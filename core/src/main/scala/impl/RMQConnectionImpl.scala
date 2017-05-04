@@ -2,9 +2,11 @@ package com.hellosoda.rmq.impl
 import com.hellosoda.rmq._
 import com.rabbitmq.client._
 import java.net.URI
+import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.{
   ExecutionContext,
-  Future }
+  Future,
+  Promise }
 import scala.util.Try
 
 class RMQConnectionImpl (
@@ -12,13 +14,33 @@ class RMQConnectionImpl (
   private val ec         : ExecutionContext)
     extends RMQConnection {
 
+  private val connectionBlocked =
+    new AtomicReference[Promise[Unit]](null)
+
+  private val preparedConnection = for {
+    conn <- underlying
+    _    =  conn.addBlockedListener(new BlockedListenerImpl(connectionBlocked))
+  } yield conn
+
   def connection : Connection =
-    underlying.get
+    preparedConnection.get
 
   def close () : Unit =
-    underlying.foreach { _.close() }
+    preparedConnection.foreach { _.close() }
 
   def createChannel () : RMQChannel =
-    new RMQChannelImpl(Try(connection.createChannel()))
+    new RMQChannelImpl(Try(connection.createChannel()), this)
+
+  def isBlocked : Boolean =
+    connectionBlocked.get() != null
+
+  def waitUnblocked () : Future[Unit] = {
+    val promise = connectionBlocked.get()
+
+    if (promise == null)
+      Future.unit
+    else
+      promise.future
+  }
 
 }

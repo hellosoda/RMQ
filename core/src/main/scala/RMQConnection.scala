@@ -20,6 +20,11 @@ trait RMQConnection extends java.io.Closeable {
   def close () : Unit
 
   def createChannel () : RMQChannel
+
+  def isBlocked : Boolean
+
+  def waitUnblocked () : Future[Unit]
+
 }
 
 object RMQConnection {
