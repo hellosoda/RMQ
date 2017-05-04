@@ -15,12 +15,11 @@ private[rmq] class AsyncMutex {
 
     queue.add(new Runnable {
       def run () : Unit =
-        Future(f).onComplete {
-          case any =>
-            promise.complete(any)
-            queue.poll()
-            if (queueSize.decrementAndGet() > 0)
-              queue.peek().run()
+        Future(f).onComplete { any =>
+          promise.complete(any)
+          queue.poll()
+          if (queueSize.decrementAndGet() > 0)
+            queue.peek().run()
         }
     })
 

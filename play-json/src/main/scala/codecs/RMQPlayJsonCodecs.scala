@@ -11,10 +11,10 @@ trait RMQPlayJsonCodecs {
     val contentType = Some("application/json")
 
     def encode (value : T) =
-      Json.stringify(fmt.writes(value)).getBytes("utf-8")
+      stringRMQCodec.encode(Json.stringify(fmt.writes(value)))
 
     def decode (array : Array[Byte]) =
-      Json.parse(array).as(fmt)
+      Json.parse(stringRMQCodec.decode(array)).as(fmt)
   }
 
 }
