@@ -53,6 +53,18 @@ trait RMQChannel extends java.io.Closeable {
   def messageCount (queue : RMQQueue) : Future[Long]
 
   def publish [T] (
+    queue      : RMQQueue,
+    properties : RMQBasicProperties,
+    body       : T)(implicit
+    codec      : RMQCodec[T]
+  ) : Future[Unit] =
+    publish(
+      exchange   = RMQExchange.none,
+      routingKey = RMQRoutingKey(queue.name),
+      properties = properties,
+      body       = body)
+
+  def publish [T] (
     exchange   : RMQExchange,
     routingKey : RMQRoutingKey,
     properties : RMQBasicProperties,
@@ -67,11 +79,5 @@ trait RMQChannel extends java.io.Closeable {
   def txRollback () : Future[Unit]
 
   def txSelect () : Future[Unit]
-
-  /** NO-OP: `publish` always awaits confirmation. **/
-  def waitConfirms () : Future[Boolean]
-
-  /** NO-OP: `publish` always awaits confirmation. **/
-  def waitConfirms (timeout : Duration) : Future[Boolean]
 
 }

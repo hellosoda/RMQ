@@ -8,6 +8,8 @@ sealed trait RMQExchange {
 
 object RMQExchange {
 
+  val none = Passive("")
+
   case class Passive (
     val name : String)
       extends RMQExchange {

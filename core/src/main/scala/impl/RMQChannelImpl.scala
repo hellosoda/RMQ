@@ -192,15 +192,4 @@ class RMQChannelImpl (
   def txSelect () : Future[Unit] =
     mutex { channel.txSelect() }
 
-  def waitConfirms () : Future[Boolean] =
-    waitConfirms(0.seconds)
-
-  def waitConfirms (timeout : Duration) : Future[Boolean] =
-    mutex {
-      if (!publisherConfirmsEnabled.get())
-        throw new IllegalStateException("Publisher confirms not enabled")
-
-      true
-    }
-
 }
