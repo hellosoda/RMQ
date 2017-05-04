@@ -9,10 +9,12 @@ lazy val defaults = Seq(
     "-unchecked",
     "-Xfatal-warnings",
     "-Ydelambdafy:method",
-    "-target:jvm-1.8"))
+    "-target:jvm-1.8"),
+  testOptions in Test += Tests.Argument("-oD"))
 
 lazy val dependencies = libraryDependencies ++= Seq(
-  "com.rabbitmq" % "amqp-client" % "4.1.0").
+  "com.rabbitmq" % "amqp-client" % "4.1.0",
+  "org.scalatest" %% "scalatest" % "3.0.2" % "test").
   map { _.exclude("ch.qos.logback", "logback-classic") }
 
 lazy val root =

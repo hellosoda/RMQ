@@ -2,7 +2,7 @@ package com.hellosoda.rmq
 
 sealed trait RMQQueue {
   def name : String
-  def passive : RMQQueue.Passive
+  def toPassive : RMQQueue.Passive
 }
 
 object RMQQueue {
@@ -10,7 +10,9 @@ object RMQQueue {
   case class Passive (
     val name : String)
       extends RMQQueue {
-    def passive = this
+
+    def toPassive =
+      this
   }
 
   case class Declare (
@@ -20,7 +22,10 @@ object RMQQueue {
     val autoDelete : Boolean = true,
     val arguments  : Map[String, Any] = Map.empty)
       extends RMQQueue {
-    def passive = Passive(name = name)
+
+    def toPassive =
+      Passive(name = name)
+
     def maxPriority (priority : Int) =
       copy(arguments = arguments + ("x-max-priority" -> priority))
   }

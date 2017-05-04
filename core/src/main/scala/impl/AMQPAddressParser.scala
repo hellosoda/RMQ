@@ -16,6 +16,7 @@ object AMQPAddressParser {
 
     def parse(hosts: Seq[String]) : Array[Address] = for {
       host <- hosts.toArray
+      if host != null
       out  =  host.split("[:]") match {
         case Array(h)    => new Address(h, DEFAULT_AMQP_PORT)
         case Array(h, p) => new Address(h, p.toInt)
