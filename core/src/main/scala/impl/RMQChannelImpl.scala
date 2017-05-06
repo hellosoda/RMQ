@@ -65,9 +65,24 @@ class RMQChannelImpl (
   def close () : Unit =
     underlying.foreach { _.close() }
 
+  def close (
+    code    : Int,
+    message : String
+  ) : Unit =
+    underlying.foreach { _.close(code, message) }
+
+  def ack (
+    deliveryTag : RMQDeliveryTag,
+    multiple    : Boolean
+  ) : Future[Unit] =
+    mutex {
+      channel.basicAck(deliveryTag.value, multiple)
+    }
+
   def consume[T] (
     queue    : RMQQueue,
-    consumer : RMQConsumer[T]
+    consumer : RMQConsumer[T])(implicit
+    codec    : RMQCodec[T]
   ) : Future[RMQConsumerHandle[T]] =
     mutex {
       val consumerTag = RMQConsumerTag(
@@ -78,13 +93,29 @@ class RMQChannelImpl (
           false, // noLocal
           false, // exclusive
           Map.empty.asJava, // arguments
-          new ConsumerAdapter(this, consumer)))
+          new ConsumerAdapter[T](this, consumer)))
 
       new RMQConsumerHandle[T](
         consumerTag = consumerTag,
         channel = this,
         consumer = consumer)
     }
+
+  def consume[T] (
+    queue    : RMQQueue)(
+    delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]])(implicit
+    codec    : RMQCodec[T],
+    strategy : RMQConsumerStrategy
+  ) : Future[RMQConsumerHandle[T]] =
+    consume[T](queue, strategy.newConsumer[T](delivery))
+
+  def consumeAck[T] (
+    queue    : RMQQueue)(
+    delivery : PartialFunction[RMQDelivery[T], Future[_]])(implicit
+    codec    : RMQCodec[T],
+    strategy : RMQConsumerStrategy
+  ) : Future[RMQConsumerHandle[T]] =
+    consume(queue)(delivery.andThen { _.map { _ => RMQReply.Ack }})
 
   def consumerCount (queue : RMQQueue) : Future[Long] =
     mutex {
@@ -135,6 +166,15 @@ class RMQChannelImpl (
       channel.messageCount(queue.name)
     }
 
+  def nack (
+    deliveryTag : RMQDeliveryTag,
+    multiple    : Boolean = false,
+    requeue     : Boolean = false
+  ) : Future[Unit] =
+    mutex {
+      channel.basicNack(deliveryTag.value, multiple, requeue)
+    }
+
   def setQos (qos : Int) : Future[Unit] =
     mutex {
       channel.basicQos(qos)
@@ -181,6 +221,11 @@ class RMQChannelImpl (
         }
     }.flatMap {
       x => x
+    }
+
+  def recover (requeue : Boolean) : Future[Unit] =
+    mutex {
+      channel.basicRecover(requeue)
     }
 
   def txCommit () : Future[Unit] =

@@ -1,14 +1,29 @@
 package com.hellosoda.rmq
+import com.rabbitmq.client._
 import scala.concurrent.Future
 
-trait RMQConsumer[T] {
+trait RMQConsumer[T] extends java.io.Closeable {
 
-  def onDecodeFailure () : Future[RMQReply]
+  final def close () : Unit =
+    cancel()
 
-  def onDeliveryFailure () : Future[RMQReply]
+  def cancel () : Unit =
+    channel.cancelConsumer(consumerTag)
 
-  def onShutdown () : Future[RMQReply]
+  def channel : RMQChannel
 
-  def onDelivery () : Future[RMQReply]
+  def consumerTag : RMQConsumerTag
+
+  def onCancel () : Future[Unit]
+
+  def onDecodeFailure (message : RMQMessage) : Future[RMQReply]
+
+  def onDelivery (delivery : RMQDelivery[T]) : Future[RMQReply]
+
+  def onDeliveryFailure (delivery : RMQDelivery[T]) : Future[RMQReply]
+
+  def onRecover () : Future[Unit]
+
+  def onShutdown (signal : ShutdownSignalException) : Future[Unit]
 
 }

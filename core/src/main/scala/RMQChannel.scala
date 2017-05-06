@@ -35,11 +35,48 @@ trait RMQChannel extends java.io.Closeable {
   /** Close the underlying resource. */
   def close () : Unit
 
+  def close (
+    code    : Int,
+    message : String
+  ) : Unit
+
+  def ack (
+    deliveryTag : RMQDeliveryTag,
+    multiple    : Boolean = false
+  ) : Future[Unit]
+
+  def bindQueue (
+    queue      : RMQQueue,
+    exchange   : RMQExchange,
+    routingKey : RMQRoutingKey
+  ) : Future[Unit]
+
+  def bindQueue (
+    queue      : RMQQueue,
+    exchange   : RMQExchange
+  ) : Future[Unit] =
+    bindQueue(queue, exchange, RMQRoutingKey.none)
+
   def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit]
 
   def consume[T] (
     queue    : RMQQueue,
-    consumer : RMQConsumer[T]
+    consumer : RMQConsumer[T])(implicit
+    codec    : RMQCodec[T]
+  ) : Future[RMQConsumerHandle[T]]
+
+  def consume[T] (
+    queue    : RMQQueue)(
+    delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]])(implicit
+    codec    : RMQCodec[T],
+    strategy : RMQConsumerStrategy
+  ) : Future[RMQConsumerHandle[T]]
+
+  def consumeAck[T] (
+    queue    : RMQQueue)(
+    delivery : PartialFunction[RMQDelivery[T], Future[_]])(implicit
+    codec    : RMQCodec[T],
+    strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]]
 
   def consumerCount (queue : RMQQueue) : Future[Long]
@@ -51,6 +88,12 @@ trait RMQChannel extends java.io.Closeable {
   def enablePublisherConfirms () : Future[Unit]
 
   def messageCount (queue : RMQQueue) : Future[Long]
+
+  def nack (
+    deliveryTag : RMQDeliveryTag,
+    multiple    : Boolean = false,
+    requeue     : Boolean = false
+  ) : Future[Unit]
 
   def publish [T] (
     queue      : RMQQueue,
@@ -71,6 +114,9 @@ trait RMQChannel extends java.io.Closeable {
     body       : T)(implicit
     codec      : RMQCodec[T]
   ) : Future[Unit]
+
+  /** Re-send all unacknowledged messages. **/
+  def recover (requeue : Boolean = true) : Future[Unit]
 
   def setQos (qos : Int) : Future[Unit]
 
