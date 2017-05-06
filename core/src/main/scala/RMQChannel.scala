@@ -4,41 +4,6 @@ import scala.concurrent.Future
 
 trait RMQChannel extends java.io.Closeable {
 
-  def bindQueue (
-    queue      : RMQQueue,
-    exchange   : RMQExchange,
-    routingKey : RMQRoutingKey
-  ) : Future[Unit]
-
-  /** Return the underlying [[com.rabbitmq.client.Channel]]
-    *
-    * **Public API for enrichment purposes.** Raise an exception if
-    * an error occured when constructing the Channel.
-    */
-  def channel : Channel
-
-  /** Acquire the internal mutex guarding calls to the underlying
-    * [[com.rabbitmq.client.Channel]].
-    *
-    * **Public API for enrichment purposes.** The thunk `f` will be executed
-    * on the internal execution context of the [[RMQChannel]]. There is only
-    * one mutex per [[RMQChannel]] instance, which guarantees that only one
-    * thunk is executing at any given time.
-    *
-    * Behaviour of the RMQChannel is undefined if the thunk `f` blocks or
-    * otherwise never completes. A likely consequence is that all subsequent
-    * RMQChannel calls will wait indefinitely for the lock to release.
-    */
-  def mutex[T] (f : => T) : Future[T]
-
-  /** Close the underlying resource. */
-  def close () : Unit
-
-  def close (
-    code    : Int,
-    message : String
-  ) : Unit
-
   def ack (
     deliveryTag : RMQDeliveryTag,
     multiple    : Boolean = false
@@ -55,6 +20,21 @@ trait RMQChannel extends java.io.Closeable {
     exchange   : RMQExchange
   ) : Future[Unit] =
     bindQueue(queue, exchange, RMQRoutingKey.none)
+
+  /** Return the underlying [[com.rabbitmq.client.Channel]]
+    *
+    * **Public API for enrichment purposes.** Raise an exception if
+    * an error occured when constructing the Channel.
+    */
+  def channel : Channel
+
+  /** Close the underlying resource. */
+  def close () : Unit
+
+  def close (
+    code    : Int,
+    message : String
+  ) : Unit
 
   def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit]
 
@@ -87,6 +67,20 @@ trait RMQChannel extends java.io.Closeable {
   def enablePublisherConfirms () : Future[Unit]
 
   def messageCount (queue : RMQQueue) : Future[Long]
+
+  /** Acquire the internal mutex guarding calls to the underlying
+    * [[com.rabbitmq.client.Channel]].
+    *
+    * **Public API for enrichment purposes.** The thunk `f` will be executed
+    * on the internal execution context of the [[RMQChannel]]. There is only
+    * one mutex per [[RMQChannel]] instance, which guarantees that only one
+    * thunk is executing at any given time.
+    *
+    * Behaviour of the RMQChannel is undefined if the thunk `f` blocks or
+    * otherwise never completes. A likely consequence is that all subsequent
+    * RMQChannel calls will wait indefinitely for the lock to release.
+    */
+  def mutex[T] (f : => T) : Future[T]
 
   def nack (
     deliveryTag : RMQDeliveryTag,

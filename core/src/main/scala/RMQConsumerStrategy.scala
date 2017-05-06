@@ -1,21 +1,28 @@
 package com.hellosoda.rmq
+import com.hellosoda.rmq.consumers._
 import scala.concurrent.Future
 
 trait RMQConsumerStrategy {
-  def newConsumer[T] (
-    delivery : PartialFunction[T, Future[RMQReply]]
+  def createConsumer[T] (
+    channel  : RMQChannel,
+    delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]]
   ) : RMQConsumer[T]
 }
 
 object RMQConsumerStrategy {
 
-  case class OnFailureNack (
-    val requeue : Boolean = false)
-      extends RMQConsumerStrategy {
-    def newConsumer[T] (delivery : PartialFunction[T, Future[RMQReply]]) =
-      new OnFailureNackConsumer[T](
-        requeue  = requeue,
-        delivery = delivery)
+  object OnFailureNack {
+    def apply (requeue : Boolean = false) : RMQConsumerStrategy =
+      new RMQConsumerStrategy {
+        def createConsumer[T] (
+          channel  : RMQChannel,
+          delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]]
+        ) : RMQConsumer[T] =
+          new OnFailureNackConsumer(
+            channel  = channel,
+            delivery = delivery,
+            requeue  = requeue)
+      }
   }
 
 }

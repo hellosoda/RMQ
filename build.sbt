@@ -23,6 +23,9 @@ lazy val dependencies = libraryDependencies ++= Seq(
 lazy val root =
   (project in file(".")).
   settings(defaults: _*).
+  settings(
+    publish      := {},
+    publishLocal := {}).
   aggregate(core).
   aggregate(`play-json`)
 

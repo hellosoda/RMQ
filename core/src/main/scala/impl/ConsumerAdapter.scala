@@ -3,7 +3,8 @@ import com.hellosoda.rmq._
 import com.rabbitmq.client._
 import scala.concurrent.{
   Await,
-  ExecutionContext }
+  ExecutionContext,
+  Future }
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
@@ -15,25 +16,26 @@ class ConsumerAdapter[T] (
     extends Consumer {
 
   private def handleReply (
-    deliveryTag : RMQDeliveryTag,
-    f           : => Future[RMQReply]
+    message : RMQMessage,
+    f       : => Future[RMQReply]
   ) : Unit =
     f.foreach {
       case RMQReply.Ack =>
         channel.ack(
-          deliveryTag = deliveryTag,
-          multiple = false)
+          deliveryTag = message.envelope.deliveryTag,
+          multiple    = false)
 
       case RMQReply.Cancel =>
-        consumer.cancel()
+        // TODO: Which cancellation path to use?
+        Await.result(channel.cancelConsumer(message.consumerTag), Duration.Inf)
 
       case nack: RMQReply.Nack =>
         channel.nack(
-          deliveryTag = deliveryTag,
-          multiple = nack.multiple)
+          deliveryTag = message.envelope.deliveryTag,
+          multiple    = false)
 
       case RMQReply.Shutdown =>
-        ???
+        channel.close(-1, "Channel closed on consumer request")
     }
 
   def handleCancel (consumerTag : String) : Unit =
@@ -59,23 +61,24 @@ class ConsumerAdapter[T] (
       consumerTag = RMQConsumerTag(consumerTag),
       envelope    = new RMQEnvelope(envelope),
       properties  = RMQBasicProperties.fromBasicProperties(properties),
-      body        = body)
+      bytes       = body)
 
     val decoded =
       try codec.decode(body)
       catch { case NonFatal(error) =>
-        handleReply(
+        return handleReply(
           message,
-          consumer.onDecodeFailure(
-            channel, delivery, error))
+          consumer.onDecodeFailure(message, error))
       }
 
     val delivery = RMQDelivery[T](message, decoded)
 
     val consumed = consumer.
-      onDelivery(delivery)
+      onDelivery(delivery).
       recoverWith { case NonFatal(error) =>
-        consumer.onDeliveryFailure(channel, delivery, error)
+        consumer.onDeliveryFailure(
+          delivery = delivery,
+          reason   = error)
       }
 
     handleReply(message, consumed)
@@ -86,14 +89,12 @@ class ConsumerAdapter[T] (
   }
 
   def handleRecoverOk (consumerTag : String) : Unit =
-    // Called on the Channel's dispatch thread.
     Await.result(consumer.onRecover(), Duration.Inf)
 
   def handleShutdownSignal (
     consumerTag : String,
     signal      : ShutdownSignalException
   ) : Unit =
-    // Called on the Channel's dispatch thread.
     Await.result(consumer.onShutdown(signal), Duration.Inf)
 
 }

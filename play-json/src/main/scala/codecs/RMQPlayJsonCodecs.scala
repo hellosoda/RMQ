@@ -5,6 +5,8 @@ import play.api.libs.json._
 object RMQPlayJsonCodecs extends RMQPlayJsonCodecs
 trait RMQPlayJsonCodecs {
 
+  import RMQDefaultCodecs.stringRMQCodec
+
   implicit def playJsonFormatRMQCodec[T] (implicit
     fmt : Format[T]
   ) : RMQCodec[T] = new RMQCodec[T] {

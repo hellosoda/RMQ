@@ -37,6 +37,14 @@ class RMQChannelImpl (
   //
   private val lock = new AsyncMutex()
 
+  def ack (
+    deliveryTag : RMQDeliveryTag,
+    multiple    : Boolean
+  ) : Future[Unit] =
+    mutex {
+      channel.basicAck(deliveryTag.value, multiple)
+    }
+
   def bindQueue (
     queue      : RMQQueue,
     exchange   : RMQExchange,
@@ -58,9 +66,6 @@ class RMQChannelImpl (
   def channel : Channel =
     underlying.get
 
-  def mutex[T] (f : => T) : Future[T] =
-    lock.acquire(f)
-
   def close () : Unit =
     underlying.foreach { _.close() }
 
@@ -69,14 +74,6 @@ class RMQChannelImpl (
     message : String
   ) : Unit =
     underlying.foreach { _.close(code, message) }
-
-  def ack (
-    deliveryTag : RMQDeliveryTag,
-    multiple    : Boolean
-  ) : Future[Unit] =
-    mutex {
-      channel.basicAck(deliveryTag.value, multiple)
-    }
 
   def consume[T] (
     queue    : RMQQueue,
@@ -106,7 +103,7 @@ class RMQChannelImpl (
     codec    : RMQCodec[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]] =
-    consume[T](queue, strategy.newConsumer[T](delivery))
+    consume[T](queue, strategy.createConsumer[T](this, delivery))
 
   def consumeAck[T] (
     queue    : RMQQueue)(
@@ -165,6 +162,9 @@ class RMQChannelImpl (
       channel.messageCount(queue.name)
     }
 
+  def mutex[T] (f : => T) : Future[T] =
+    lock.acquire(f)
+
   def nack (
     deliveryTag : RMQDeliveryTag,
     multiple    : Boolean = false,
@@ -201,7 +201,7 @@ class RMQChannelImpl (
         contentType = properties.contentType orElse codec.contentType)
 
       connection.
-        waitUnblocked().
+        waitUnblocked(). // Preempt blocking in basicPublish.
         flatMap { _ =>
           channel.basicPublish(
             exchange.name,
