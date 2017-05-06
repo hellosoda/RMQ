@@ -1,7 +1,6 @@
 package com.hellosoda.rmq.impl
 import com.hellosoda.rmq._
 import com.rabbitmq.client._
-import java.net.URI
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.{
   ExecutionContext,

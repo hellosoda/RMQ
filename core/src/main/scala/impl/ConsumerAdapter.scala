@@ -1,7 +1,10 @@
 package com.hellosoda.rmq.impl
 import com.hellosoda.rmq._
 import com.rabbitmq.client._
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{
+  Await,
+  ExecutionContext }
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 class ConsumerAdapter[T] (

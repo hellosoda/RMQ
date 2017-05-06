@@ -1,5 +1,4 @@
 package com.hellosoda.rmq
-import com.rabbitmq.client.BuiltinExchangeType
 
 sealed trait RMQExchange {
   def name : String

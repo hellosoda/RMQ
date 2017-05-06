@@ -1,10 +1,5 @@
 package com.hellosoda.rmq.impl
-import scala.concurrent.{
-  Await,
-  ExecutionContext,
-  Future,
-  Promise }
-import scala.concurrent.duration.Duration
+import scala.concurrent.Future
 import scala.util.Try
 
 private[rmq] object FutureOps {

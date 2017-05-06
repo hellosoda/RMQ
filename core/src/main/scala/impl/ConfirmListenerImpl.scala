@@ -1,7 +1,6 @@
 package com.hellosoda.rmq.impl
 import com.rabbitmq.client._
 import java.util.concurrent.ConcurrentLinkedQueue
-import scala.collection.mutable.LongMap
 import scala.concurrent.Promise
 
 private[rmq] class ConfirmListenerImpl (

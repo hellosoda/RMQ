@@ -1,5 +1,4 @@
 package com.hellosoda.rmq
-import com.hellosoda.rmq.impl._
 import scala.concurrent.Future
 
 trait RMQConsumerStrategy {

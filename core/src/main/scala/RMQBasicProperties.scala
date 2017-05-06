@@ -1,7 +1,5 @@
 package com.hellosoda.rmq
-import com.rabbitmq.client.{
-  AMQP,
-  BasicProperties }
+import com.rabbitmq.client.AMQP
 import java.time.{
   Instant,
   LocalDateTime,

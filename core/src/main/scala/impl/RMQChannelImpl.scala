@@ -8,7 +8,6 @@ import scala.concurrent.{
   ExecutionContext,
   Future,
   Promise }
-import scala.concurrent.duration._
 import scala.util.Try
 import scala.util.control.NonFatal
 

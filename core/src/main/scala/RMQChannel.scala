@@ -1,7 +1,6 @@
 package com.hellosoda.rmq
 import com.rabbitmq.client._
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 trait RMQChannel extends java.io.Closeable {
 

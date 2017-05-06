@@ -62,7 +62,7 @@ object AMQPAddressParser {
 
     val withSsl = qry.get("ssl").map(asBoolean)
     val autoRecovery = qry.get("recovery").map(asBoolean)
-    val withNio = qry.get("nio").map(asBoolean)
+    val withNio = qry.get("nio").map(asBoolean).orElse(Some(true))
 
     val factory = new ConnectionFactory()
 
