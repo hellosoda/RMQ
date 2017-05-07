@@ -13,7 +13,7 @@ lazy val defaults = Seq(
     "-Yno-adapted-args",
     "-Ywarn-dead-code",
     "-target:jvm-1.8"),
-  testOptions in Test += Tests.Argument("-oD"))
+  testOptions in Test += Tests.Argument("-oDF"))
 
 lazy val dependencies = libraryDependencies ++= Seq(
   "com.rabbitmq" % "amqp-client" % "4.1.0"

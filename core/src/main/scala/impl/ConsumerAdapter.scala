@@ -84,8 +84,9 @@ class ConsumerAdapter[T] (
     handleReply(message, consumed)
   } catch {
     case NonFatal(error) =>
+      error.printStackTrace
       channel.close(
-        -1, s"The channel has encountered an unrecoverable error: $error")
+        -1, s"The channel has encountered an unrecoverable $error: ${error.getMessage}")
   }
 
   def handleRecoverOk (consumerTag : String) : Unit =

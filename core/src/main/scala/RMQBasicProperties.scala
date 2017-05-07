@@ -61,6 +61,8 @@ case class RMQBasicProperties (
 
 object RMQBasicProperties {
 
+  val default = RMQBasicProperties()
+
   def fromBasicProperties (props : AMQP.BasicProperties) : RMQBasicProperties =
     RMQBasicProperties(
       appId = Option(props.getAppId),
@@ -78,7 +80,10 @@ object RMQBasicProperties {
         map { _.asScala.mapValues { _.asInstanceOf[Any] }.toMap }.
         getOrElse(Map.empty),
       messageId = Option(props.getMessageId),
-      priority = Option(props.getPriority),
+      // At Option construction time, Scala would trip up here by attempting
+      // to implicitly unbox the nullable Integer.
+      priority =
+        if (props.getPriority == null) None else Option(props.getPriority),
       replyTo = Option(props.getReplyTo),
       timestamp = Option(props.getTimestamp).map { date =>
         LocalDateTime.ofInstant(

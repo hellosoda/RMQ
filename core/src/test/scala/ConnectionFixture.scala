@@ -1,6 +1,5 @@
 package com.hellosoda.rmq
 import java.net.URI
-import org.scalatest._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait ConnectionFixture {
