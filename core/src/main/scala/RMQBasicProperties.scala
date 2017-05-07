@@ -30,6 +30,9 @@ case class RMQBasicProperties (
   val `type` : Option[String] = None,
   val userId : Option[String] = None) {
 
+  def mapHeaders (f : (Map[String, Any]) => Map[String, Any]) =
+    copy(headers = f(headers))
+
   def asBuilder : AMQP.BasicProperties.Builder =
     new AMQP.BasicProperties.Builder().
       appId(appId getOrElse null).

@@ -12,5 +12,5 @@ object RMQReply {
   case class Nack (val requeue : Boolean) extends RMQReply
 
   /** Shut down channel **/
-  case object Shutdown extends RMQReply
+  case class Shutdown (val reason : Option[Throwable]) extends RMQReply
 }

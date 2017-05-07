@@ -34,7 +34,10 @@ class ConsumerAdapter[T] (
           deliveryTag = message.envelope.deliveryTag,
           multiple    = false)
 
-      case RMQReply.Shutdown =>
+      case RMQReply.Shutdown(Some(reason)) =>
+        channel.close(-1, s"Channel closed with $reason: ${reason.getMessage}")
+
+      case RMQReply.Shutdown(None) =>
         channel.close(-1, "Channel closed on consumer request")
     }
 
