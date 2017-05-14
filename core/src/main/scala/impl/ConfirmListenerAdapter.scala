@@ -3,7 +3,7 @@ import com.rabbitmq.client._
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.Promise
 
-private[rmq] class ConfirmListenerImpl (
+private[rmq] class ConfirmListenerAdapter (
   val confirms : ConcurrentLinkedQueue[PublisherConfirm])
     extends ConfirmListener {
 

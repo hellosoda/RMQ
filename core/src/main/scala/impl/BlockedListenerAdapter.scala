@@ -3,7 +3,7 @@ import com.rabbitmq.client._
 import java.util.concurrent.atomic.AtomicReference
 import scala.concurrent.Promise
 
-private[impl] class BlockedListenerImpl (
+private[impl] class BlockedListenerAdapter (
   private val reference : AtomicReference[Promise[Unit]])
     extends BlockedListener {
 

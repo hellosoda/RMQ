@@ -152,7 +152,7 @@ class RMQChannelImpl (
 
   def enablePublisherConfirms () : Future[Unit] =
     mutex {
-      channel.addConfirmListener(new ConfirmListenerImpl(publisherConfirms))
+      channel.addConfirmListener(new ConfirmListenerAdapter(publisherConfirms))
       channel.confirmSelect()
       publisherConfirmsEnabled.set(true)
     }

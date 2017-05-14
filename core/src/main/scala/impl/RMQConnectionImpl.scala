@@ -18,7 +18,8 @@ class RMQConnectionImpl (
 
   private val preparedConnection = for {
     conn <- underlying
-    _    =  conn.addBlockedListener(new BlockedListenerImpl(connectionBlocked))
+    _    =  conn.addBlockedListener(
+      new BlockedListenerAdapter(connectionBlocked))
   } yield conn
 
   def connection : Connection =
