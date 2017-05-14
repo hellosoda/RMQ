@@ -2,6 +2,7 @@ lazy val defaults = Seq(
   organization := "com.hellosoda",
   version      := "1.0.0-SNAPSHOT",
   scalaVersion := "2.11.11",
+  crossScalaVersions := Seq("2.11.11", "2.12.2"),
   scalacOptions in Compile ++= Seq(
     "-encoding", "utf-8",
     "-feature",
@@ -20,7 +21,7 @@ lazy val dependencies = libraryDependencies ++= Seq(
     exclude("ch.qos.logback", "logback-classic"),
   "org.scalatest" %% "scalatest" % "3.0.2" % "test")
 
-lazy val root =
+lazy val parent =
   (project in file(".")).
   settings(defaults: _*).
   settings(
