@@ -8,6 +8,9 @@ import scala.concurrent.{
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
+// TODO: Ensure that errors outside of the async boundary will always result
+//       in consumer shutdown.
+
 class ConsumerAdapter[T] (
   private val channel  : RMQChannel,
   private val consumer : RMQConsumer[T])(implicit
@@ -15,11 +18,18 @@ class ConsumerAdapter[T] (
   private val ec       : ExecutionContext)
     extends Consumer {
 
-  private def handleReply (
-    message : RMQMessage,
-    f       : => Future[RMQReply]
-  ) : Unit =
-    f.foreach {
+  private val ctx : RMQConsumerContext =
+    new RMQConsumerContext(channel)(ec)
+
+  private def call (
+    event : RMQEvent[T]
+  ) : Future[Unit] = {
+    val applied =
+      consumer.receive(ctx).applyOrElse(event, { _ : RMQEvent[T] =>
+        consumer.fallback(event)(ctx)
+      })
+
+    applied.flatMap { _ match {
       case RMQReply.Ack =>
         channel.ack(
           deliveryTag = message.envelope.deliveryTag,
@@ -27,7 +37,7 @@ class ConsumerAdapter[T] (
 
       case RMQReply.Cancel =>
         // TODO: Which cancellation path to use?
-        Await.result(channel.cancelConsumer(message.consumerTag), Duration.Inf)
+        channel.cancelConsumer(message.consumerTag)
 
       case nack: RMQReply.Nack =>
         channel.nack(
@@ -35,11 +45,17 @@ class ConsumerAdapter[T] (
           multiple    = false)
 
       case RMQReply.Shutdown(Some(reason)) =>
-        channel.close(-1, s"Channel closed with $reason: ${reason.getMessage}")
+        Future.successful {
+          channel.close(
+            -1, s"Channel closed with $reason: ${reason.getMessage}")
+        }
 
       case RMQReply.Shutdown(None) =>
-        channel.close(-1, "Channel closed on consumer request")
-    }
+        Future.successful {
+          channel.close(-1, "Channel closed on consumer request")
+        }
+    }}
+  }
 
   def handleCancel (consumerTag : String) : Unit =
     ()
@@ -67,24 +83,26 @@ class ConsumerAdapter[T] (
       bytes       = body)
 
     val decoded =
-      try codec.decode(body)
-      catch { case NonFatal(error) =>
-        return handleReply(
-          message,
-          consumer.onDecodeFailure(message, error))
+      try {
+        codec.decode(body)
+      } catch {
+        case NonFatal(error) =>
+          call(RMQEvent.OnDecodeFailure(message, error))
+          return
       }
 
-    val delivery = RMQDelivery[T](message, decoded)
-
-    val consumed = consumer.
-      onDelivery(delivery).
-      recoverWith { case NonFatal(error) =>
-        consumer.onDeliveryFailure(
-          delivery = delivery,
-          reason   = error)
-      }
-
-    handleReply(message, consumed)
+    call(RMQDelivery[T](message, decoded)).recoverWith {
+      case NonFatal(error) =>
+        try {
+          call(RMQEvent.OnDeliveryFailure(message, error))
+        } catch {
+          case NonFatal(error) =>
+            error.printStackTrace
+            channel.close(
+              -1, s"The channel has encountered an unrecoverable $error: ${error.getMessage}")
+            Future.successful(Unit)
+        }
+    }
   } catch {
     case NonFatal(error) =>
       error.printStackTrace
@@ -93,12 +111,12 @@ class ConsumerAdapter[T] (
   }
 
   def handleRecoverOk (consumerTag : String) : Unit =
-    Await.result(consumer.onRecover(), Duration.Inf)
+    Await.result(call(RMQEvent.OnRecover()), Duration.Inf)
 
   def handleShutdownSignal (
     consumerTag : String,
     signal      : ShutdownSignalException
   ) : Unit =
-    Await.result(consumer.onShutdown(signal), Duration.Inf)
+    Await.result(call(RMQEvent.OnShutdown(signal)), Duration.Inf)
 
 }

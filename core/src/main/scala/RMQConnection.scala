@@ -29,6 +29,12 @@ trait RMQConnection extends java.io.Closeable {
 
 object RMQConnection {
 
+  case class Options ()
+
+  object Options {
+    val default = Options()
+  }
+
   def fromConnection (
     conn : Connection)(implicit
     ec   : ExecutionContext
@@ -36,8 +42,9 @@ object RMQConnection {
     new RMQConnectionImpl(Try(conn))
 
   def open (
-    conn : URI)(implicit
-    ec   : ExecutionContext
+    uri     : URI,
+    options : Options = Options.default)(implicit
+    ec      : ExecutionContext
   ) : RMQConnection = {
     val connection = Try {
       val (factory, addrs) = AMQPAddressParser.parseURI(conn)

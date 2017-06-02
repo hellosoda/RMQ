@@ -38,20 +38,29 @@ trait RMQChannel extends java.io.Closeable {
 
   def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit]
 
+  /** Consume by attaching a [[com.rabbitmq.client.Consumer]]. **/
+  def consumeNative (
+    queue  : RMQQueue,
+    native : Consumer
+  ) : Future[RMQConsumerTag]
+
+  /** Consume by attaching the [[com.hellosoda.rmq.RMQConsumer]] wrapper. **/
   def consume[T] (
     queue    : RMQQueue,
     consumer : RMQConsumer[T])(implicit
     codec    : RMQCodec[T]
   ) : Future[RMQConsumerHandle[T]]
 
-  def consume[T] (
+  /** Consume deliveries, with replies set by the user. **/
+  def consumeDelivery[T] (
     queue    : RMQQueue)(
     delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]])(implicit
     codec    : RMQCodec[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]]
 
-  def consumeAck[T] (
+  /** Consume deliveries, discarding results and acking automatically. **/
+  def consumeDeliveryAck[T] (
     queue    : RMQQueue)(
     delivery : PartialFunction[RMQDelivery[T], Future[_]])(implicit
     codec    : RMQCodec[T],
