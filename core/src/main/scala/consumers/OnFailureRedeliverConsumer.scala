@@ -17,26 +17,33 @@ import scala.util.control.NonFatal
   */
 class OnFailureRedeliverConsumer[T] (
   val maxAttempts : Int)(
-  val channel     : RMQChannel,
-  val delivery    : PartialFunction[RMQDelivery[T], Future[RMQReply]])(implicit
-  val ec          : ExecutionContext)
+  val receiver    : RMQConsumer.DeliveryReceiver[T])
     extends RMQConsumer[T] {
 
   val `X-Retry-Attempts-Remaining` = "X-Retry-Attempts-Remaining"
 
+  private val nack : Future[RMQReply] =
+    Future.successful(RMQReply.Nack(requeue = false))
+
+  private val ignore : Future[RMQReply] =
+    Future.successful(RMQReply.Ignore)
+
   private def redeliver (
     message : RMQMessage,
-    reason  : Throwable
+    reason  : Throwable)(implicit
+    ctx     : RMQConsumerContext
   ) : Future[RMQReply] = {
+    import ctx.dispatcher
+
     val retryAttemptsRemaining =
       message.properties.headers.get(`X-Retry-Attempts-Remaining`).
       map(_.asInstanceOf[Int]).
       getOrElse(maxAttempts)
 
-    if (retryAttemptsRemaining < 1)
-      Future.successful(RMQReply.Nack(requeue = false))
-    else for {
-      _ <- channel.publish(
+    if (retryAttemptsRemaining < 1) {
+      nack
+    } else for {
+      _ <- ctx.channel.publish(
         exchange   = RMQExchange.Passive(message.envelope.exchange),
         routingKey = message.envelope.routingKey,
         body       = message.bytes,
@@ -45,44 +52,22 @@ class OnFailureRedeliverConsumer[T] (
     } yield RMQReply.Nack(requeue = false)
   }
 
-  def onCancel (reason : Option[Throwable]) =
-    Future.unit
+  def fallback (
+    event : RMQEvent[T])(implicit
+    ctx   : RMQConsumerContext
+  ) : Future[RMQReply] = event match {
+    case delivery: RMQDelivery[_] =>
+      fallback(RMQEvent.OnDeliveryFailure(
+        delivery, new IllegalStateException("Delivery not handled")))
 
-  def onDecodeFailure (
-    message : RMQMessage,
-    reason  : Throwable
-  ) : Future[RMQReply] =
-    redeliver(message, reason)
-
-  def onDelivery (delivery : RMQDelivery[T]) : Future[RMQReply] = {
-    def fallback () : Future[RMQReply] =
-      redeliver(
-        delivery.message,
-        new RuntimeException("Delivered message not handled"))
-
-    try {
-      this.delivery.
-      applyOrElse(delivery, { _: RMQDelivery[T] => fallback() }).
-      recoverWith {
-        case NonFatal(error) =>
-          redeliver(delivery.message, error)
-      }
-    } catch {
-      case NonFatal(error) =>
-        Future.successful(RMQReply.Shutdown(Some(error)))
-    }
+    case _: RMQEvent.OnCancel => ignore
+    case RMQEvent.OnDecodeFailure(m, r) => redeliver(m, r)
+    case RMQEvent.OnDeliveryFailure(m, r) => redeliver(m, r)
+    case _: RMQEvent.OnRecover => ignore
+    case _: RMQEvent.OnShutdown => ignore
   }
 
-  def onDeliveryFailure (
-    delivery : RMQDelivery[T],
-    reason   : Throwable
-  ) : Future[RMQReply] =
-    redeliver(delivery.message, reason)
-
-  def onRecover () =
-    Future.unit
-
-  def onShutdown (signal : ShutdownSignalException) =
-    Future.unit
+  def receive (implicit ctx : RMQConsumerContext) =
+    this.receiver
 
 }

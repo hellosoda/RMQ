@@ -1,27 +1,30 @@
 package com.hellosoda.rmq
+import com.hellosoda.rmq.consumers._
 import com.rabbitmq.client._
 import scala.concurrent.Future
 
 trait RMQConsumer[T] {
 
-  def onCancel (
-    reason : Option[Throwable]
-  ) : Future[Unit]
-
-  def onDecodeFailure (
-    message : RMQMessage,
-    reason  : Throwable
+  def fallback (
+    event : RMQEvent[T])(implicit
+    ctx   : RMQConsumerContext
   ) : Future[RMQReply]
 
-  def onDelivery (delivery : RMQDelivery[T]) : Future[RMQReply]
+  def receive (implicit
+    ctx : RMQConsumerContext
+  ) : RMQConsumer.EventReceiver[T]
 
-  def onDeliveryFailure (
-    delivery : RMQDelivery[T],
-    reason   : Throwable
-  ) : Future[RMQReply]
+}
 
-  def onRecover () : Future[Unit]
+object RMQConsumer {
 
-  def onShutdown (signal : ShutdownSignalException) : Future[Unit]
+  type DeliveryReceiver[T] = PartialFunction[RMQDelivery[T], Future[RMQReply]]
+  type EventReceiver[T]    = PartialFunction[RMQEvent[T], Future[RMQReply]]
+
+  type OnFailureNack[T] = OnFailureNackConsumer[T]
+  val  OnFailureNack    = OnFailureNackConsumer
+
+  type OnFailureRedeliver[T] = OnFailureNackRedeliver[T]
+  val  OnFailureRedeliver    = OnFailureNackRedeliver
 
 }

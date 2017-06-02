@@ -6,39 +6,29 @@ import scala.concurrent.Future
 import scala.util.control.NonFatal
 
 class OnFailureNackConsumer[T] (
-  val channel  : RMQChannel,
-  val delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]],
-  val requeue  : Boolean)
+  val requeue  : Boolean)(
+  val receiver : RMQConsumer.DeliveryReceiver[T])
     extends RMQConsumer[T] {
 
-  private val nack =
+  private val nack : Future[RMQReply] =
     Future.successful(RMQReply.Nack(requeue = requeue))
 
-  def onCancel (reason : Option[Throwable]) = Future.unit
+  private val ignore : Future[RMQReply] =
+    Future.successful(RMQReply.Ignore)
 
-  def onDecodeFailure (
-    message : RMQMessage,
-    reason  : Throwable
-  ) : Future[RMQReply] =
-    nack
+  def fallback (
+    event : RMQEvent[T])(implicit
+    ctx   : RMQConsumerContext
+  ) : Future[RMQReply] = event match {
+    case _: RMQDelivery[_] => nack
+    case _: RMQEvent.OnCancel => ignore
+    case _: RMQEvent.OnDecodeFailure => nack
+    case _: RMQEvent.OnDeliveryFailure => nack
+    case _: RMQEvent.OnRecover => ignore
+    case _: RMQEvent.OnShutdown => ignore
+  }
 
-  def onDelivery (delivery : RMQDelivery[T]) : Future[RMQReply] =
-    try {
-      this.delivery.applyOrElse(delivery, { _: RMQDelivery[T] => nack })
-    } catch {
-      case NonFatal(error) =>
-        // XXX: Produce a RMQReply.Close or RMQReply.Shutdown
-        channel.close(-1, s"Unexpected error on delivery: $error")
-        nack
-    }
-
-  def onDeliveryFailure (
-    delivery : RMQDelivery[T],
-    reason   : Throwable
-  ) : Future[RMQReply] =
-    nack
-
-  def onRecover () = Future.unit
-  def onShutdown (signal : ShutdownSignalException) = Future.unit
+  def receive (implicit ctx : RMQConsumerContext) =
+    this.receiver
 
 }
