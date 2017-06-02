@@ -9,9 +9,12 @@ class OnFailureNackStrategy (
   def createConsumer[T] (
     receiver : RMQConsumer.DeliveryReceiver[T]
   ) : RMQConsumer[T] =
-    new OnFailureNackConsumer[T](
-      requeue  = requeue)(
-      receiver = receiver)
+    new OnFailureNackConsumer[T](requeue = requeue) {
+      override def receive (implicit ctx : RMQConsumerContext) = {
+        case delivery: RMQDelivery[T] if receiver.isDefinedAt(delivery) =>
+          receiver(delivery)
+      }
+    }
 }
 
 object OnFailureNackStrategy {

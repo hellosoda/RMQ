@@ -11,9 +11,8 @@ import scala.concurrent.{
   *
   * But initially omitting the intermediate queue.
   */
-class OnFailureRedeliverConsumer[T] (
-  val maxAttempts : Int)(
-  val receiver    : RMQConsumer.DeliveryReceiver[T])
+abstract class OnFailureRedeliverConsumer[T] (
+  val maxAttempts : Int)
     extends RMQConsumer[T] {
 
   val `X-Retry-Attempts-Remaining` = "X-Retry-Attempts-Remaining"
@@ -62,13 +61,6 @@ class OnFailureRedeliverConsumer[T] (
     case RMQEvent.OnDeliveryFailure(m, r) => redeliver(m, r)
     case _: RMQEvent.OnRecover => ignore
     case _: RMQEvent.OnShutdown => ignore
-  }
-
-  def receive (implicit
-    ctx : RMQConsumerContext
-  ) : RMQConsumer.EventReceiver[T] = {
-    case delivery: RMQDelivery[T] if receiver.isDefinedAt(delivery) =>
-      this.receiver(delivery)
   }
 
 }

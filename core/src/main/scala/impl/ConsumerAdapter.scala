@@ -8,9 +8,6 @@ import scala.concurrent.{
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
-// TODO: Ensure that errors outside of the async boundary will always result
-//       in consumer shutdown.
-
 class ConsumerAdapter[T] (
   private val channel  : RMQChannel,
   private val consumer : RMQConsumer[T])(implicit

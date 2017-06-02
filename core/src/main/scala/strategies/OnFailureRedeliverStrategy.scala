@@ -10,8 +10,12 @@ class OnFailureRedeliverStrategy (
     receiver : RMQConsumer.DeliveryReceiver[T]
   ) : RMQConsumer[T] =
     new OnFailureRedeliverConsumer[T](
-      maxAttempts = maxAttempts)(
-      receiver    = receiver)
+      maxAttempts = maxAttempts) {
+      override def receive (implicit ctx : RMQConsumerContext) = {
+        case delivery: RMQDelivery[T] if receiver.isDefinedAt(delivery) =>
+          receiver(delivery)
+      }
+    }
 }
 
 object OnFailureRedeliverStrategy {

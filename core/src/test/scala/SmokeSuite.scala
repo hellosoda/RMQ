@@ -75,17 +75,46 @@ class SmokeSuite
     recvChan.messageCount(queue).futureValue shouldBe 1
   }
 
-  it should "enable the consumption of messages" in {
+  it should "enable the consumption of messages (ConsumerStrategy)" in {
     implicit val strategy = RMQConsumerStrategy.OnFailureNack(false)
+
     val promise = Promise[String]()
-    val handle = recvChan.consumeAck[String](queue) {
+    val handle = recvChan.consumeDeliveryAck[String](queue) {
       case RMQDelivery(_, string) =>
         Future.successful(promise.success(string))
     }.futureValue
 
+    val content = "Greetings, programs!"
     recvChan.consumerCount(queue).futureValue shouldBe 1
-    promise.future.futureValue shouldBe "Greetings, programs!"
+    promise.future.futureValue shouldBe content
     recvChan.messageCount(queue).futureValue shouldBe 0
+
+    And("when the handle is closed, the consumer exits")
+    handle.close()
+    recvChan.consumerCount(queue).futureValue shouldBe 0
+  }
+
+  it should "enable the consumption of messages (custom Consumer)" in {
+    val promise = Promise[String]()
+
+    object consumer extends RMQConsumer.OnFailureNack[String](false) {
+      override def receive (implicit ctx : RMQConsumerContext) = {
+        case RMQDelivery(_, string) =>
+          promise.success(string)
+          Future.successful(RMQReply.Ack)
+      }
+    }
+
+    val content = "A vast, complex system!"
+    recvChan.consumerCount(queue).futureValue shouldBe 0
+    val handle = recvChan.consume(queue, consumer).futureValue
+    recvChan.consumerCount(queue).futureValue shouldBe 1
+    sendChan.publish(queue, RMQBasicProperties.default, content).futureValue
+    promise.future.futureValue shouldBe content
+
+    And("when the handle is closed, the consumer exits")
+    handle.close()
+    recvChan.consumerCount(queue).futureValue shouldBe 0
   }
 
 }
