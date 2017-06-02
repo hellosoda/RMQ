@@ -1,11 +1,7 @@
 package com.hellosoda.rmq.consumers
 import com.hellosoda.rmq._
-import com.hellosoda.rmq.impl._
-import com.rabbitmq.client._
 import scala.concurrent.{
-  ExecutionContext,
   Future }
-import scala.util.control.NonFatal
 
 /** An elaborate consumer that will make use of a separate queue for the
   * purpose of redelivering a message upon failure.
@@ -58,7 +54,8 @@ class OnFailureRedeliverConsumer[T] (
   ) : Future[RMQReply] = event match {
     case delivery: RMQDelivery[_] =>
       fallback(RMQEvent.OnDeliveryFailure(
-        delivery, new IllegalStateException("Delivery not handled")))
+        delivery.message,
+        new IllegalStateException("Delivery not handled")))
 
     case _: RMQEvent.OnCancel => ignore
     case RMQEvent.OnDecodeFailure(m, r) => redeliver(m, r)
@@ -67,7 +64,13 @@ class OnFailureRedeliverConsumer[T] (
     case _: RMQEvent.OnShutdown => ignore
   }
 
-  def receive (implicit ctx : RMQConsumerContext) =
-    this.receiver
+  def receive (implicit
+    ctx : RMQConsumerContext
+  ) : RMQConsumer.EventReceiver[T] = {
+    case delivery: RMQDelivery[T] if receiver.isDefinedAt(delivery) =>
+      this.receiver(delivery)
+  }
 
 }
+
+object OnFailureRedeliverConsumer

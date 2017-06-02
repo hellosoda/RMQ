@@ -1,9 +1,6 @@
 package com.hellosoda.rmq.consumers
 import com.hellosoda.rmq._
-import com.hellosoda.rmq.impl._
-import com.rabbitmq.client._
 import scala.concurrent.Future
-import scala.util.control.NonFatal
 
 class OnFailureNackConsumer[T] (
   val requeue  : Boolean)(
@@ -28,7 +25,13 @@ class OnFailureNackConsumer[T] (
     case _: RMQEvent.OnShutdown => ignore
   }
 
-  def receive (implicit ctx : RMQConsumerContext) =
-    this.receiver
+  def receive (implicit
+    ctx : RMQConsumerContext
+  ) : RMQConsumer.EventReceiver[T] = {
+    case delivery: RMQDelivery[T] if receiver.isDefinedAt(delivery) =>
+      this.receiver(delivery)
+  }
 
 }
+
+object OnFailureNackConsumer

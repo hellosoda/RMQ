@@ -21,28 +21,44 @@ class ConsumerAdapter[T] (
   private val ctx : RMQConsumerContext =
     new RMQConsumerContext(channel)(ec)
 
-  private def call (
-    event : RMQEvent[T]
-  ) : Future[Unit] = {
-    val applied =
-      consumer.receive(ctx).applyOrElse(event, { _ : RMQEvent[T] =>
-        consumer.fallback(event)(ctx)
-      })
+  private val liftedReceive = consumer.receive(ctx).lift
 
-    applied.flatMap { _ match {
-      case RMQReply.Ack =>
+  private def call (
+    message : RMQMessage,
+    event   : RMQEvent[T]
+  ) : Future[Unit] = {
+    val reply = liftedReceive(event) match {
+      case None => consumer.fallback(event)(ctx)
+      case Some(reply) => reply.flatMap {
+        case RMQReply.Ignore => consumer.fallback(event)(ctx)
+        case _ => Future.successful(reply)
+      }
+    }
+
+    reply.flatMap { _ match {
+      case RMQReply.Ack if message != null =>
         channel.ack(
           deliveryTag = message.envelope.deliveryTag,
           multiple    = false)
 
-      case RMQReply.Cancel =>
-        // TODO: Which cancellation path to use?
-        channel.cancelConsumer(message.consumerTag)
-
-      case nack: RMQReply.Nack =>
+      case nack: RMQReply.Nack if message != null =>
         channel.nack(
           deliveryTag = message.envelope.deliveryTag,
           multiple    = false)
+
+      case RMQReply.Ack if message == null =>
+        Future.successful {
+          channel.close(-1, s"Channel closed: invalid ack")
+        }
+
+      case _: RMQReply.Nack if message == null =>
+        Future.successful {
+          channel.close(-1, s"Channel closed: invalid nack")
+        }
+
+      case RMQReply.Cancel =>
+        // TODO: Which cancellation path to use?
+        channel.cancelConsumer(message.consumerTag)
 
       case RMQReply.Shutdown(Some(reason)) =>
         Future.successful {
@@ -54,6 +70,13 @@ class ConsumerAdapter[T] (
         Future.successful {
           channel.close(-1, "Channel closed on consumer request")
         }
+
+      case RMQReply.Ignore if message != null =>
+        Future.successful {
+          channel.close(-1, "Channel closed: invalid ignore")
+        }
+
+        // TODO: Re-check the cases here.
     }}
   }
 
@@ -87,14 +110,14 @@ class ConsumerAdapter[T] (
         codec.decode(body)
       } catch {
         case NonFatal(error) =>
-          call(RMQEvent.OnDecodeFailure(message, error))
+          call(message, RMQEvent.OnDecodeFailure(message, error))
           return
       }
 
-    call(RMQDelivery[T](message, decoded)).recoverWith {
+    call(message, RMQDelivery[T](message, decoded)).recoverWith {
       case NonFatal(error) =>
         try {
-          call(RMQEvent.OnDeliveryFailure(message, error))
+          call(message, RMQEvent.OnDeliveryFailure(message, error))
         } catch {
           case NonFatal(error) =>
             error.printStackTrace
@@ -111,12 +134,12 @@ class ConsumerAdapter[T] (
   }
 
   def handleRecoverOk (consumerTag : String) : Unit =
-    Await.result(call(RMQEvent.OnRecover()), Duration.Inf)
+    Await.result(call(null, RMQEvent.OnRecover()), Duration.Inf)
 
   def handleShutdownSignal (
     consumerTag : String,
     signal      : ShutdownSignalException
   ) : Unit =
-    Await.result(call(RMQEvent.OnShutdown(signal)), Duration.Inf)
+    Await.result(call(null, RMQEvent.OnShutdown(signal)), Duration.Inf)
 
 }

@@ -1,5 +1,6 @@
 package com.hellosoda.rmq.strategies
 import com.hellosoda.rmq._
+import com.hellosoda.rmq.consumers._
 
 class OnFailureNackStrategy (
   val requeue : Boolean)

@@ -47,7 +47,7 @@ object RMQConnection {
     ec      : ExecutionContext
   ) : RMQConnection = {
     val connection = Try {
-      val (factory, addrs) = AMQPAddressParser.parseURI(conn)
+      val (factory, addrs) = AMQPAddressParser.parseURI(uri)
       factory.newConnection(addrs)
     }
 

@@ -1,5 +1,6 @@
 package com.hellosoda.rmq.strategies
 import com.hellosoda.rmq._
+import com.hellosoda.rmq.consumers._
 
 class OnFailureRedeliverStrategy (
   val maxAttempts : Int)
@@ -9,7 +10,7 @@ class OnFailureRedeliverStrategy (
     receiver : RMQConsumer.DeliveryReceiver[T]
   ) : RMQConsumer[T] =
     new OnFailureRedeliverConsumer[T](
-      maxAttempts = maxAttempts,
+      maxAttempts = maxAttempts)(
       receiver    = receiver)
 }
 

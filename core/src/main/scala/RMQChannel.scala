@@ -54,7 +54,7 @@ trait RMQChannel extends java.io.Closeable {
   /** Consume deliveries, with replies set by the user. **/
   def consumeDelivery[T] (
     queue    : RMQQueue)(
-    delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]])(implicit
+    delivery : RMQConsumer.DeliveryReceiver[T])(implicit
     codec    : RMQCodec[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]]

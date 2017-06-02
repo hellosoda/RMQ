@@ -75,6 +75,22 @@ class RMQChannelImpl (
   ) : Unit =
     underlying.foreach { _.close(code, message) }
 
+  def consumeNative (
+    queue  : RMQQueue,
+    native : Consumer
+  ) : Future[RMQConsumerTag] =
+    mutex {
+      RMQConsumerTag(
+        channel.basicConsume(
+          queue.name,
+          false, // autoAck
+          "", // consumerTag
+          false, // noLocal
+          false, // exclusive
+          Map.empty.asJava, // arguments
+          native))
+    }
+
   def consume[T] (
     queue    : RMQQueue,
     consumer : RMQConsumer[T])(implicit
@@ -97,21 +113,21 @@ class RMQChannelImpl (
         consumer = consumer)
     }
 
-  def consume[T] (
+  def consumeDelivery[T] (
     queue    : RMQQueue)(
-    delivery : PartialFunction[RMQDelivery[T], Future[RMQReply]])(implicit
+    delivery : RMQConsumer.DeliveryReceiver[T])(implicit
     codec    : RMQCodec[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]] =
-    consume[T](queue, strategy.createConsumer[T](this, delivery))
+    consume[T](queue, strategy.createConsumer[T](delivery))
 
-  def consumeAck[T] (
+  def consumeDeliveryAck[T] (
     queue    : RMQQueue)(
     delivery : PartialFunction[RMQDelivery[T], Future[_]])(implicit
     codec    : RMQCodec[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]] =
-    consume(queue)(delivery.andThen { _.map { _ => RMQReply.Ack }})
+    consumeDelivery(queue)(delivery.andThen { _.map { _ => RMQReply.Ack }})
 
   def consumerCount (queue : RMQQueue) : Future[Long] =
     mutex {

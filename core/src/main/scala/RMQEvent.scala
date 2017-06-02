@@ -1,6 +1,7 @@
 package com.hellosoda.rmq
+import com.rabbitmq.client._
 
-sealed trait RMQEvent[T]
+sealed trait RMQEvent[+T]
 
 object RMQEvent {
 

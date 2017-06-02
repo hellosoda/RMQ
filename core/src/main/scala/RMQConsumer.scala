@@ -1,6 +1,5 @@
 package com.hellosoda.rmq
 import com.hellosoda.rmq.consumers._
-import com.rabbitmq.client._
 import scala.concurrent.Future
 
 trait RMQConsumer[T] {
@@ -24,7 +23,7 @@ object RMQConsumer {
   type OnFailureNack[T] = OnFailureNackConsumer[T]
   val  OnFailureNack    = OnFailureNackConsumer
 
-  type OnFailureRedeliver[T] = OnFailureNackRedeliver[T]
-  val  OnFailureRedeliver    = OnFailureNackRedeliver
+  type OnFailureRedeliver[T] = OnFailureRedeliverConsumer[T]
+  val  OnFailureRedeliver    = OnFailureRedeliverConsumer
 
 }
