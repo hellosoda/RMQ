@@ -8,14 +8,26 @@ import scala.concurrent.{
   ExecutionContext,
   Future,
   Promise }
-import scala.util.Try
+import scala.util.{
+  Failure,
+  Success,
+  Try }
 import scala.util.control.NonFatal
 
 class RMQChannelImpl (
   private val underlying : Try[Channel],
   private val connection : RMQConnection)(implicit
   private val ec         : ExecutionContext)
-    extends RMQChannel {
+    extends RMQChannel
+    with    com.typesafe.scalalogging.LazyLogging {
+
+  underlying match {
+    case Failure(error) =>
+      logger.error("Channel open failure", error)
+
+    case Success(channel) =>
+      logger.debug(s"Channel open: number=${channel.getChannelNumber}")
+  }
 
   private val publisherConfirmsEnabled = new AtomicBoolean(false)
   private val publisherConfirms = new ConcurrentLinkedQueue[PublisherConfirm]()

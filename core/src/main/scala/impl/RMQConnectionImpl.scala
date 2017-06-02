@@ -6,12 +6,24 @@ import scala.concurrent.{
   ExecutionContext,
   Future,
   Promise }
-import scala.util.Try
+import scala.util.{
+  Failure,
+  Success,
+  Try }
 
 class RMQConnectionImpl (
   private val underlying : Try[Connection])(implicit
   private val ec         : ExecutionContext)
-    extends RMQConnection {
+    extends RMQConnection
+    with    com.typesafe.scalalogging.LazyLogging {
+
+  underlying match {
+    case Failure(error) =>
+      logger.error("Connection open failure", error)
+
+    case Success(connection) =>
+      logger.debug(s"Connection open: address=${connection.getAddress} id=${connection.getId}")
+  }
 
   private val connectionBlocked =
     new AtomicReference[Promise[Unit]](null)
@@ -26,7 +38,10 @@ class RMQConnectionImpl (
     preparedConnection.get
 
   def close () : Unit =
-    preparedConnection.foreach { _.close() }
+    preparedConnection.foreach { conn =>
+      logger.debug(s"Connection close: id=${conn.getId}")
+      conn.close()
+    }
 
   def createChannel () : RMQChannel =
     new RMQChannelImpl(Try(connection.createChannel()), this)

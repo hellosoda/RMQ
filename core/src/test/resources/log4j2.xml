@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <Appenders>
+    <Console name="stdout">
+      <PatternLayout>
+        <Charset>utf-8</Charset>
+        <alwaysWriteExceptions>true</alwaysWriteExceptions>
+        <Pattern>
+          %highlight{%-6p}{TRACE=black, TIMING=black, DEBUG=cyan, INFO=green, ACCESS=blue, AUDIT=blue, WARN=yellow, ERROR=red, FATAL=red} [%d{yyyy-MM-dd HH:mm:ss.SSS}] — %m — [%t @ %c{1}] %K%n
+        </Pattern>
+      </PatternLayout>
+    </Console>
+  </Appenders>
+  <Loggers>
+    <Root level="INFO">
+      <AppenderRef ref="stdout" />
+    </Root>
+    <Logger name="com.hellosoda" level="DEBUG" additivity="false">
+      <AppenderRef ref="stdout" level="DEBUG" />
+    </Logger>
+  </Loggers>
+</Configuration>

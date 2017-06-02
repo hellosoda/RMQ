@@ -19,6 +19,10 @@ lazy val defaults = Seq(
 lazy val dependencies = libraryDependencies ++= Seq(
   "com.rabbitmq" % "amqp-client" % "4.1.0"
     exclude("ch.qos.logback", "logback-classic"),
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
+  "org.apache.logging.log4j" % "log4j-api"        % "2.6.1" % "test",
+  "org.apache.logging.log4j" % "log4j-core"       % "2.6.1" % "test",
+  "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.6.1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.2" % "test")
 
 lazy val parent =
