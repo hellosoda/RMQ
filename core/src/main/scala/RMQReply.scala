@@ -13,4 +13,7 @@ object RMQReply {
 
   /** Shut down channel **/
   case class Shutdown (val reason : Option[Throwable]) extends RMQReply
+
+  /** Fall back to underlying RMQConsumerStrategy **/
+  case object Ignore extends RMQReply
 }
