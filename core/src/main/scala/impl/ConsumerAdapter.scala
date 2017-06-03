@@ -13,7 +13,8 @@ class ConsumerAdapter[T] (
   private val consumer : RMQConsumer[T])(implicit
   private val codec    : RMQCodec[T],
   private val ec       : ExecutionContext)
-    extends Consumer {
+    extends Consumer
+    with    com.typesafe.scalalogging.LazyLogging {
 
   private val ctx : RMQConsumerContext =
     new RMQConsumerContext(channel)(ec)
@@ -77,17 +78,20 @@ class ConsumerAdapter[T] (
     }}
   }
 
-  def handleCancel (consumerTag : String) : Unit =
-    ()
+  def handleCancel (consumerTag : String) : Unit = {
+    logger.trace(s"handleCancel($consumerTag)")
+  }
 
-  def handleCancelOk (consumerTag : String) : Unit =
-    ()
+  def handleCancelOk (consumerTag : String) : Unit = {
+    logger.trace(s"handleCancelOk($consumerTag)")
+  }
 
   // TODO: Would this be called if, for example, the consumer
   //       is registered to many basicConsume? (i.e. may receive
   //       messages across several consumerTags).
-  def handleConsumeOk (consumerTag : String) : Unit =
-    ()
+  def handleConsumeOk (consumerTag : String) : Unit = {
+    logger.trace(s"handleConsumeOk($consumerTag)")
+  }
 
   def handleDelivery (
     consumerTag : String,
@@ -95,6 +99,7 @@ class ConsumerAdapter[T] (
     properties  : AMQP.BasicProperties,
     body        : Array[Byte]
   ) : Unit = try {
+    logger.trace(s"handleDelivery($consumerTag, ...)")
 
     val message = RMQMessage(
       consumerTag = RMQConsumerTag(consumerTag),
@@ -107,7 +112,14 @@ class ConsumerAdapter[T] (
         codec.decode(body)
       } catch {
         case NonFatal(error) =>
-          call(message, RMQEvent.OnDecodeFailure(message, error))
+          try {
+            call(message, RMQEvent.OnDecodeFailure(message, error))
+          } catch {
+            case NonFatal(error) =>
+              logger.error(s"Consumer error (OnDecodeFailure)", error)
+              channel.close(-1, s"The channel has encountered an unrecoverable $error: ${error.getMessage}")
+          }
+
           return
       }
 
@@ -117,7 +129,7 @@ class ConsumerAdapter[T] (
           call(message, RMQEvent.OnDeliveryFailure(message, error))
         } catch {
           case NonFatal(error) =>
-            error.printStackTrace
+            logger.error(s"Consumer error (OnDeliveryFailure)", error)
             channel.close(
               -1, s"The channel has encountered an unrecoverable $error: ${error.getMessage}")
             Future.successful(Unit)
@@ -125,18 +137,23 @@ class ConsumerAdapter[T] (
     }
   } catch {
     case NonFatal(error) =>
-      error.printStackTrace
+      logger.error(s"Consumer error (OnDelivery)", error)
       channel.close(
         -1, s"The channel has encountered an unrecoverable $error: ${error.getMessage}")
   }
 
-  def handleRecoverOk (consumerTag : String) : Unit =
+  def handleRecoverOk (consumerTag : String) : Unit = {
+    logger.trace(s"handleRecoverOk($consumerTag)")
     Await.result(call(null, RMQEvent.OnRecover()), Duration.Inf)
+  }
 
   def handleShutdownSignal (
     consumerTag : String,
     signal      : ShutdownSignalException
-  ) : Unit =
+  ) : Unit = {
+    logger.trace(
+      s"handleShutdownSignal($consumerTag, $signal '${signal.getMessage}')")
     Await.result(call(null, RMQEvent.OnShutdown(signal)), Duration.Inf)
+  }
 
 }

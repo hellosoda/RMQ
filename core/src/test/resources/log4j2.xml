@@ -15,8 +15,8 @@
     <Root level="INFO">
       <AppenderRef ref="stdout" />
     </Root>
-    <Logger name="com.hellosoda" level="DEBUG" additivity="false">
-      <AppenderRef ref="stdout" level="DEBUG" />
+    <Logger name="com.hellosoda" level="TRACE" additivity="false">
+      <AppenderRef ref="stdout" level="TRACE" />
     </Logger>
   </Loggers>
 </Configuration>
