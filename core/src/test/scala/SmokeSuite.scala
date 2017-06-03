@@ -37,7 +37,7 @@ class SmokeSuite
     name       = s"${prefix}.queue",
     durable    = false,
     exclusive  = true,
-    autoDelete = true)
+    autoDelete = false)
 
   it should "permit exchange declarations" in {
     // XXX: This crashes the channel.

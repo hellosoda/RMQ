@@ -6,6 +6,7 @@ class RMQConsumerHandle[T] (
   val consumer    : RMQConsumer[T])
     extends java.io.Closeable {
 
+  /** Alias of cancel(). **/
   final def close () : Unit =
     cancel()
 
