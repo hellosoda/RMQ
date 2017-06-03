@@ -13,7 +13,8 @@ import scala.concurrent.{
   */
 abstract class OnFailureRedeliverConsumer[T] (
   val maxAttempts : Int)
-    extends RMQConsumer[T] {
+    extends RMQConsumer[T]
+    with    com.typesafe.scalalogging.LazyLogging {
 
   val `X-Retry-Attempts-Remaining` = "X-Retry-Attempts-Remaining"
 
