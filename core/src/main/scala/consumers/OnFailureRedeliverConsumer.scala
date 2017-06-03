@@ -33,7 +33,9 @@ abstract class OnFailureRedeliverConsumer[T] (
     val retryAttemptsRemaining =
       message.properties.headers.get(`X-Retry-Attempts-Remaining`).
       map(_.asInstanceOf[Int]).
-      getOrElse(maxAttempts)
+        getOrElse(maxAttempts)
+
+    logger.trace(s"redeliver: reason='$reason ${reason.getMessage}' remaining=$retryAttemptsRemaining deliveryTag=${message.envelope.deliveryTag} exchange=${message.envelope.exchange} routingKey=${message.envelope.routingKey}")
 
     if (retryAttemptsRemaining < 1) {
       nack
