@@ -1,5 +1,5 @@
 lazy val defaults = Seq(
-  organization := "com.hellosoda",
+  organization := "com.hellosoda.rmq",
   version      := ("git describe --tags --always --dirty=-SNAPSHOT" !!).trim,
   scalaVersion := "2.11.11",
   crossScalaVersions := Seq("2.11.11", "2.12.2"),
@@ -25,24 +25,24 @@ lazy val dependencies = libraryDependencies ++= Seq(
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.6.1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.2" % "test")
 
-lazy val parent =
+lazy val `rmq-parent` =
   (project in file(".")).
   settings(defaults: _*).
   settings(
     publish      := {},
     publishLocal := {}).
-  aggregate(core).
-  aggregate(`play-json`)
+  aggregate(`rmq-core`).
+  aggregate(`rmq-play-json`)
 
-lazy val core =
+lazy val `rmq-core` =
   (project in file("core")).
   settings(defaults: _*).
   settings(dependencies: _*)
 
-lazy val `play-json` =
+lazy val `rmq-play-json` =
   (project in file("play-json")).
   settings(defaults: _*).
   settings(libraryDependencies ++= Seq(
     "com.typesafe.play" %% "play-json" % "2.4.11")).
-  dependsOn(core).
-  aggregate(core)
+  dependsOn(`rmq-core`).
+  aggregate(`rmq-core`)
