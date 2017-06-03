@@ -1,6 +1,18 @@
+def getVersion () : String = {
+  val base = ("git describe --tags --always" !!).trim
+  val hashOnly = "(^[0-9a-f]$)".r
+  val offset   = "^(.*?)\\-[0-9]+\\-[0-9a-f]+".r
+
+  ("git describe --tags --always" !!).trim match {
+    case hashOnly(hash) => hash
+    case offset(version) => s"$version-SNAPSHOT"
+    case other => other
+  }
+}
+
 lazy val defaults = Seq(
   organization := "com.hellosoda.rmq",
-  version      := ("git describe --tags --always --dirty=-SNAPSHOT" !!).trim,
+  version      := getVersion(),
   scalaVersion := "2.11.11",
   crossScalaVersions := Seq("2.11.11", "2.12.2"),
   scalacOptions in Compile ++= Seq(
