@@ -21,12 +21,19 @@ class RMQChannelImpl (
     extends RMQChannel
     with    com.typesafe.scalalogging.LazyLogging {
 
+  private val channelInfo = underlying.map { channel =>
+    List(
+      s"connection=${channel.getConnection.getId}",
+      s"channel=${channel.getChannelNumber}").
+      mkString(" ")
+  }.getOrElse("<DEAD CHANNEL>")
+
   underlying match {
     case Failure(error) =>
       logger.error("Channel open failure", error)
 
     case Success(channel) =>
-      logger.debug(s"Channel open: number=${channel.getChannelNumber}")
+      logger.debug(s"createChannel: ${channelInfo}")
   }
 
   private val publisherConfirmsEnabled = new AtomicBoolean(false)
@@ -54,6 +61,7 @@ class RMQChannelImpl (
     multiple    : Boolean
   ) : Future[Unit] =
     mutex {
+      logger.trace(s"basicAck: deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} $channelInfo")
       channel.basicAck(deliveryTag.value, multiple)
     }
 
@@ -63,6 +71,7 @@ class RMQChannelImpl (
     routingKey : RMQRoutingKey
   ) : Future[Unit] =
     lock.acquire {
+      logger.trace(s"queueBind: queue=$queue exchange=$exchange routingKey=$routingKey $channelInfo")
       channel.queueBind(
         queue.name,
         exchange.name,
@@ -72,6 +81,7 @@ class RMQChannelImpl (
 
   def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit] =
     mutex {
+      logger.trace(s"basicCancel: consumerTag=$consumerTag $channelInfo")
       channel.basicCancel(consumerTag.toString)
     }
 
@@ -79,14 +89,17 @@ class RMQChannelImpl (
     underlying.get
 
   def close () : Unit =
-    underlying.foreach { _.close() }
+    underlying.foreach { chan =>
+      logger.debug(s"close: $channelInfo")
+      chan.close()
+    }
 
   def close (
     code    : Int,
     message : String
   ) : Unit =
     underlying.foreach { chan =>
-      logger.debug(s"Closing channel: number=${chan.getChannelNumber} code=$code message=$message")
+      logger.debug(s"close: code=$code message=$message $channelInfo")
       chan.close(code, message)
     }
 
@@ -95,7 +108,7 @@ class RMQChannelImpl (
     native : Consumer
   ) : Future[RMQConsumerTag] =
     mutex {
-      RMQConsumerTag(
+      val consumerTag = RMQConsumerTag(
         channel.basicConsume(
           queue.name,
           false, // autoAck
@@ -104,6 +117,9 @@ class RMQChannelImpl (
           false, // exclusive
           Map.empty.asJava, // arguments
           native))
+      logger.trace(s"basicConsume: queue=$queue tag=$consumerTag $channelInfo")
+
+      consumerTag
     }
 
   def consume[T] (
@@ -121,6 +137,7 @@ class RMQChannelImpl (
           false, // exclusive
           Map.empty.asJava, // arguments
           new ConsumerAdapter[T](this, consumer)))
+      logger.trace(s"basicConsume: queue=$queue tag=$consumerTag $channelInfo")
 
       new RMQConsumerHandle[T](
         consumerTag = consumerTag,
@@ -152,10 +169,14 @@ class RMQChannelImpl (
   def declareExchange (exchange : RMQExchange) : Future[Unit] =
     mutex {
       exchange match {
-        case RMQExchange.Passive(name) =>
-          channel.exchangeDeclarePassive(name)
+        case pasv: RMQExchange.Passive =>
+          logger.trace(
+            s"exchangeDeclare: passive=1 exchange=$pasv $channelInfo")
+          channel.exchangeDeclarePassive(pasv.name)
 
         case decl: RMQExchange.Declare =>
+          logger.trace(
+            s"exchangeDeclare: passive=0 exchange=$decl $channelInfo")
           channel.exchangeDeclare(
             decl.name,
             decl.kind.native,
@@ -168,10 +189,12 @@ class RMQChannelImpl (
   def declareQueue (queue : RMQQueue) : Future[Unit] =
     mutex {
       queue match {
-        case RMQQueue.Passive(name) =>
-          channel.queueDeclarePassive(name)
+        case pasv: RMQQueue.Passive =>
+          logger.trace(s"queueDeclare: passive=1 queue=$pasv $channelInfo")
+          channel.queueDeclarePassive(pasv.name)
 
         case decl: RMQQueue.Declare =>
+          logger.trace(s"queueDeclare: passive=0 queue=$decl $channelInfo")
           channel.queueDeclare(
             decl.name,
             decl.durable,
@@ -183,6 +206,7 @@ class RMQChannelImpl (
 
   def enablePublisherConfirms () : Future[Unit] =
     mutex {
+      logger.trace(s"enablePublisherConfirms: $channelInfo")
       channel.addConfirmListener(new ConfirmListenerAdapter(publisherConfirms))
       channel.confirmSelect()
       publisherConfirmsEnabled.set(true)
@@ -202,11 +226,13 @@ class RMQChannelImpl (
     requeue     : Boolean = false
   ) : Future[Unit] =
     mutex {
+      logger.trace(s"basicNack: deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} requeue=${if (requeue) 1 else 0} $channelInfo")
       channel.basicNack(deliveryTag.value, multiple, requeue)
     }
 
   def setQos (qos : Int) : Future[Unit] =
     mutex {
+      logger.trace(s"basicQos: qos=$qos $channelInfo")
       channel.basicQos(qos)
     }
 
@@ -255,6 +281,7 @@ class RMQChannelImpl (
 
   def recover (requeue : Boolean) : Future[Unit] =
     mutex {
+      logger.trace(s"recover: requeue=${if (requeue) 1 else 0} $channelInfo")
       channel.basicRecover(requeue)
     }
 

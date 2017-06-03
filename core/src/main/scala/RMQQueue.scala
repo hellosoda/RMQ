@@ -3,6 +3,9 @@ package com.hellosoda.rmq
 sealed trait RMQQueue {
   def name : String
   def toPassive : RMQQueue.Passive
+
+  override def toString =
+    name
 }
 
 object RMQQueue {

@@ -34,7 +34,7 @@ class RMQConnectionImpl (
       logger.error("Connection open failure", error)
 
     case Success(connection) =>
-      logger.debug(s"Connection open: address=${connection.getAddress} id=${connection.getId}")
+      logger.debug(s"connectionOpen: address=${connection.getAddress} id=${connection.getId}")
   }
 
   def connection : Connection =

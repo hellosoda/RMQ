@@ -3,6 +3,9 @@ package com.hellosoda.rmq
 sealed trait RMQExchange {
   def name : String
   def toPassive : RMQExchange.Passive
+
+  override def toString =
+    name
 }
 
 object RMQExchange {
