@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 
 /** Scala-native access to the RMQ properties.
   *
-  * The underlying [[com.rabbitmq.client.AMQP.BasicProperties]] is
+  * The underlying ''com.rabbitmq.client.AMQP.BasicProperties'' is
   * generated automatically in "codegen.py" of the Java RabbitMQ client.
   */
 case class RMQBasicProperties (

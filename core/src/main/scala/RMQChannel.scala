@@ -21,7 +21,7 @@ trait RMQChannel extends java.io.Closeable {
   ) : Future[Unit] =
     bindQueue(queue, exchange, RMQRoutingKey.none)
 
-  /** Return the underlying [[com.rabbitmq.client.Channel]]
+  /** Return the underlying ''com.rabbitmq.client.Channel''
     *
     * **Public API for enrichment purposes.** Raise an exception if
     * an error occured when constructing the Channel.
@@ -38,7 +38,7 @@ trait RMQChannel extends java.io.Closeable {
 
   def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit]
 
-  /** Consume by attaching a [[com.rabbitmq.client.Consumer]]. **/
+  /** Consume by attaching a ''com.rabbitmq.client.Consumer''. **/
   def consumeNative (
     queue  : RMQQueue,
     native : Consumer
@@ -78,7 +78,7 @@ trait RMQChannel extends java.io.Closeable {
   def messageCount (queue : RMQQueue) : Future[Long]
 
   /** Acquire the internal mutex guarding calls to the underlying
-    * [[com.rabbitmq.client.Channel]].
+    * ''com.rabbitmq.client.Channel''.
     *
     * **Public API for enrichment purposes.** The thunk `f` will be executed
     * on the internal execution context of the [[RMQChannel]]. There is only

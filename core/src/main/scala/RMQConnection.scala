@@ -9,7 +9,7 @@ import scala.util.Try
 
 trait RMQConnection extends java.io.Closeable {
 
-  /** Return the underlying [[com.rabbitmq.client.Connection]]
+  /** Return the underlying ''com.rabbitmq.client.Connection''
     *
     * **Public API for enrichment purposes.** Raise an exception if
     * an error occured when constructing the Connection.
