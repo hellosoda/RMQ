@@ -85,7 +85,10 @@ class RMQChannelImpl (
     code    : Int,
     message : String
   ) : Unit =
-    underlying.foreach { _.close(code, message) }
+    underlying.foreach { chan =>
+      logger.debug(s"Closing channel: number=${chan.getChannelNumber} code=$code message=$message")
+      chan.close(code, message)
+    }
 
   def consumeNative (
     queue  : RMQQueue,

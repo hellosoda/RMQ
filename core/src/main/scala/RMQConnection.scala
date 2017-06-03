@@ -21,6 +21,10 @@ trait RMQConnection extends java.io.Closeable {
 
   def createChannel () : RMQChannel
 
+  def id : String
+
+  def id_= (value : String) : Unit
+
   def isBlocked : Boolean
 
   def waitUnblocked () : Future[Unit]
@@ -29,13 +33,47 @@ trait RMQConnection extends java.io.Closeable {
 
 object RMQConnection {
 
-  case class Options ()
+  case class ConnectOptions (
+    val hosts : Seq[Address],
+    val virtualHost : String,
+    val username : String,
+    val password : String,
+    val options : Options)
+
+  case class Options (
+    val autoRecovery : Boolean,
+    val connectionId : Option[String],
+    val nio : Boolean,
+    val ssl : Boolean)
 
   object Options {
-    val default = Options()
+    val default = Options(
+      autoRecovery = true,
+      connectionId = None,
+      nio = true,
+      ssl = false)
   }
 
-  def fromConnection (
+  // TODO: Need more flexibility of passing options.
+
+  private def connect (
+    options : ConnectOptions
+  ) : Connection = {
+    val factory = new ConnectionFactory();
+
+    factory.setUsername(options.username)
+    factory.setPassword(options.password)
+    factory.setVirtualHost(options.virtualHost)
+    factory.setAutomaticRecoveryEnabled(options.options.autoRecovery)
+    if (options.options.nio) factory.useNio()
+
+    factory.newConnection(options.hosts.toArray)
+  }
+
+  def parseURI (uri : URI) : Try[ConnectOptions] =
+    Try { AMQPAddressParser.parseURI(uri) }
+
+  def wrap (
     conn : Connection)(implicit
     ec   : ExecutionContext
   ) : RMQConnection =
@@ -46,11 +84,19 @@ object RMQConnection {
     options : Options = Options.default)(implicit
     ec      : ExecutionContext
   ) : RMQConnection = {
-    val connection = Try {
-      val (factory, addrs) = AMQPAddressParser.parseURI(uri)
-      factory.newConnection(addrs)
-    }
+    val connection = for {
+      options <- parseURI(uri)
+      conn    <- Try { connect(options) }
+    } yield conn
 
+    new RMQConnectionImpl(connection)
+  }
+
+  def open (
+    options : ConnectOptions)(implicit
+    ec      : ExecutionContext
+  ) : RMQConnection = {
+    val connection = Try { connect(options) }
     new RMQConnectionImpl(connection)
   }
 

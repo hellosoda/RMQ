@@ -17,22 +17,25 @@ class RMQConnectionImpl (
     extends RMQConnection
     with    com.typesafe.scalalogging.LazyLogging {
 
-  underlying match {
+  private val connectionBlocked =
+    new AtomicReference[Promise[Unit]](null)
+
+  private val preparedConnection = for {
+    conn <- underlying
+    _ = conn.addBlockedListener(
+      new BlockedListenerAdapter(connectionBlocked))
+    _ = if (conn.getId == null) {
+      conn.setId(java.util.UUID.randomUUID.toString)
+    }
+  } yield conn
+
+  preparedConnection match {
     case Failure(error) =>
       logger.error("Connection open failure", error)
 
     case Success(connection) =>
       logger.debug(s"Connection open: address=${connection.getAddress} id=${connection.getId}")
   }
-
-  private val connectionBlocked =
-    new AtomicReference[Promise[Unit]](null)
-
-  private val preparedConnection = for {
-    conn <- underlying
-    _    =  conn.addBlockedListener(
-      new BlockedListenerAdapter(connectionBlocked))
-  } yield conn
 
   def connection : Connection =
     preparedConnection.get
@@ -45,6 +48,12 @@ class RMQConnectionImpl (
 
   def createChannel () : RMQChannel =
     new RMQChannelImpl(Try(connection.createChannel()), this)
+
+  def id : String =
+    preparedConnection.get.getId()
+
+  def id_= (value : String) : Unit =
+    preparedConnection.get.setId(value)
 
   def isBlocked : Boolean =
     connectionBlocked.get() != null

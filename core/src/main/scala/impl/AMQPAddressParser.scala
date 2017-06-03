@@ -1,4 +1,5 @@
 package com.hellosoda.rmq.impl
+import com.hellosoda.rmq.RMQConnection
 import com.rabbitmq.client._
 import java.net.URI
 
@@ -8,7 +9,7 @@ object AMQPAddressParser {
 
   private val authorityRe = raw"^(?:([^:]+):([^@]+)@)?([^,]+)(?:,([^,]+))*$$".r
 
-  def parseURI (uri : URI) : (ConnectionFactory, Array[Address]) = {
+  def parseURI (uri : URI) : RMQConnection.ConnectOptions = {
 
     if (uri.getScheme != "amqp")
       throw new IllegalArgumentException(
@@ -60,29 +61,23 @@ object AMQPAddressParser {
         case "false" | "0" | "n" | "no" => false
       }
 
-    val withSsl = qry.get("ssl").map(asBoolean)
-    val autoRecovery = qry.get("recovery").map(asBoolean)
-    val withNio = qry.get("nio").map(asBoolean).orElse(Some(true))
+    val options = RMQConnection.Options(
+      autoRecovery = qry.get("recovery").map(asBoolean).getOrElse(
+        RMQConnection.Options.default.autoRecovery),
+      connectionId = qry.get("id"),
+      nio = qry.get("nio").map(asBoolean).getOrElse(
+        RMQConnection.Options.default.nio),
+      ssl = qry.get("ssl").map(asBoolean).getOrElse(
+        RMQConnection.Options.default.ssl))
 
-    val factory = new ConnectionFactory()
+    val connectOptions = RMQConnection.ConnectOptions(
+      hosts       = hosts,
+      virtualHost = vhost.getOrElse(DEFAULT_VHOST),
+      username    = user,
+      password    = pass,
+      options     = options)
 
-    factory.setUsername(user)
-    factory.setPassword(pass)
-
-    vhost.foreach { vhost =>
-      factory.setVirtualHost(vhost)
-    }
-
-    autoRecovery.foreach {
-      factory.setAutomaticRecoveryEnabled(_)
-    }
-
-    withNio.foreach { bool =>
-      if (bool)
-        factory.useNio()
-    }
-
-    (factory, hosts)
+    connectOptions
   }
 
 }
