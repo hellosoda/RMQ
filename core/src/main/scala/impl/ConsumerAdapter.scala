@@ -25,11 +25,11 @@ class ConsumerAdapter[T] (
     message : RMQMessage,
     event   : RMQEvent[T]
   ) : Future[Unit] = {
-    val reply = liftedReceive(event) match {
+    val reply : Future[RMQReply] = liftedReceive(event) match {
       case None => consumer.fallback(event)(ctx)
       case Some(reply) => reply.flatMap {
         case RMQReply.Ignore => consumer.fallback(event)(ctx)
-        case _ => Future.successful(reply)
+        case _ => reply
       }
     }
 
