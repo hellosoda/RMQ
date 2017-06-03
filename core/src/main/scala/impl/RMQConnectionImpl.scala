@@ -22,11 +22,11 @@ class RMQConnectionImpl (
 
   private val preparedConnection = for {
     conn <- underlying
+    _ = if (conn.getId == null) conn.setId(java.util.UUID.randomUUID.toString)
     _ = conn.addBlockedListener(
-      new BlockedListenerAdapter(connectionBlocked))
-    _ = if (conn.getId == null) {
-      conn.setId(java.util.UUID.randomUUID.toString)
-    }
+      new BlockedListenerAdapter(
+        connectionId = conn.getId,
+        reference    = connectionBlocked))
   } yield conn
 
   preparedConnection match {
