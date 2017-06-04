@@ -76,6 +76,8 @@ trait RMQChannel extends java.io.Closeable {
 
   def enablePublisherConfirms () : Future[Unit]
 
+  def enablePublisherConfirmsSync () : Unit
+
   def messageCount (queue : RMQQueue) : Future[Long]
 
   /** Acquire the internal mutex guarding calls to the underlying

@@ -5,9 +5,11 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.JavaConverters._
 import scala.concurrent.{
+  Await,
   ExecutionContext,
   Future,
   Promise }
+import scala.concurrent.duration._
 import scala.util.{
   Failure,
   Success,
@@ -211,6 +213,9 @@ class RMQChannelImpl (
       channel.confirmSelect()
       publisherConfirmsEnabled.set(true)
     }
+
+  def enablePublisherConfirmsSync () : Unit =
+    Await.result(enablePublisherConfirms(), Duration.Inf)
 
   def messageCount (queue : RMQQueue) : Future[Long] =
     mutex {
