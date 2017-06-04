@@ -49,6 +49,9 @@ class RMQConnectionImpl (
   def createChannel () : RMQChannel =
     new RMQChannelImpl(Try(connection.createChannel()), this)
 
+  def createChannelAsync () : Future[RMQChannel] =
+    Future.wrap { createChannel() }
+
   def id : String =
     preparedConnection.get.getId()
 

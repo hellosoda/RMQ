@@ -26,6 +26,7 @@ trait RMQChannel extends java.io.Closeable {
     * **Public API for enrichment purposes.** Raise an exception if
     * an error occured when constructing the Channel.
     */
+  @throws[Throwable]("If channel construction encountered an error")
   def channel : Channel
 
   /** Close the underlying resource. */

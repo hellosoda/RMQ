@@ -12,21 +12,34 @@ trait RMQConnection extends java.io.Closeable {
   /** Return the underlying ''com.rabbitmq.client.Connection''
     *
     * **Public API for enrichment purposes.** Raise an exception if
-    * an error occured when constructing the Connection.
-    */
+    * an error occured when constructing the Connection. **/
+  @throws[Throwable]("If connection construction encountered an error")
   def connection : Connection
 
   /** Close underlying resources. **/
   def close () : Unit
 
+  /** Create a new ''com.rabbitmq.client.Channel''
+    * wrapped in [[RMQChannel]].
+    *
+    * This method will never throw an exception. Errors encountered when
+    * constructing the channel will be raised by [[RMQChannel]] methods.
+    * **/
   def createChannel () : RMQChannel
+
+  /** Wraps the createChannel() method in a Future. **/
+  def createChannelAsync () : Future[RMQChannel]
 
   def id : String
 
   def id_= (value : String) : Unit
 
+  /** Returns true if the underlying connection is blocked. **/
   def isBlocked : Boolean
 
+  /** Return a Future that will complete once the underlying connection
+    * is in an unblocked state. This is not a guarantee that the connection
+    * would not re-enter the blocked state after a brief unblock. **/
   def waitUnblocked () : Future[Unit]
 
 }
