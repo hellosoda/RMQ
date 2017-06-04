@@ -37,24 +37,29 @@ lazy val dependencies = libraryDependencies ++= Seq(
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.6.1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.2" % "test")
 
-lazy val `rmq-parent` =
+lazy val parent =
   (project in file(".")).
   settings(defaults: _*).
   settings(
+    name         := "rmq-parent",
     publish      := {},
     publishLocal := {}).
-  aggregate(`rmq-core`).
-  aggregate(`rmq-play-json`)
+  aggregate(core).
+  aggregate(`play-json`)
 
-lazy val `rmq-core` =
+lazy val core =
   (project in file("core")).
   settings(defaults: _*).
-  settings(dependencies: _*)
+  settings(dependencies: _*).
+  settings(
+    name := "rmq-core")
 
-lazy val `rmq-play-json` =
+lazy val `play-json` =
   (project in file("play-json")).
   settings(defaults: _*).
   settings(libraryDependencies ++= Seq(
     "com.typesafe.play" %% "play-json" % "2.4.11")).
-  dependsOn(`rmq-core`).
-  aggregate(`rmq-core`)
+  settings(
+    name := "rmq-play-json").
+  dependsOn(core).
+  aggregate(core)
