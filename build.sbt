@@ -1,15 +1,3 @@
-def getVersion () : String = {
-  val base = ("git describe --tags --always" !!).trim
-  val hashOnly = "(^[0-9a-z]$)".r
-  val offset   = "^(.*?)\\-[0-9]+\\-[0-9a-z]+".r
-
-  ("git describe --tags --always" !!).trim match {
-    case hashOnly(hash) => hash
-    case offset(version) => s"$version-SNAPSHOT"
-    case other => other
-  }
-}
-
 lazy val defaults = Seq(
   organization := "com.hellosoda.rmq",
   version      := getVersion(),
@@ -37,6 +25,8 @@ lazy val dependencies = libraryDependencies ++= Seq(
   "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.6.1" % "test",
   "org.scalatest" %% "scalatest" % "3.0.2" % "test")
 
+//
+
 lazy val parent =
   (project in file(".")).
   settings(defaults: _*).
@@ -63,3 +53,17 @@ lazy val `play-json` =
     name := "rmq-play-json").
   dependsOn(core).
   aggregate(core)
+
+//
+
+def getVersion () : String = {
+  val base = ("git describe --tags --always" !!).trim
+  val hashOnly = "(^[0-9a-z]$)".r
+  val offset   = "^(.*?)\\-[0-9]+\\-[0-9a-z]+".r
+
+  ("git describe --tags --always" !!).trim match {
+    case hashOnly(hash) => hash
+    case offset(version) => s"$version-SNAPSHOT"
+    case other => other
+  }
+}

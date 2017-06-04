@@ -63,7 +63,7 @@ object RMQConnection {
     val default = Options(
       autoRecovery = true,
       connectionId = None,
-      nio = true,
+      nio = false,
       ssl = false)
   }
 
