@@ -11,7 +11,7 @@ import scala.util.control.NonFatal
 class ConsumerAdapter[T] (
   private val channel  : RMQChannel,
   private val consumer : RMQConsumer[T])(implicit
-  private val codec    : RMQCodec[T],
+  private val codec    : RMQCodec.Decoder[T],
   private val ec       : ExecutionContext)
     extends Consumer
     with    com.typesafe.scalalogging.LazyLogging {

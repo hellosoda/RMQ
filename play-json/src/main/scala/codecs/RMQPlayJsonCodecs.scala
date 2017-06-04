@@ -7,16 +7,19 @@ trait RMQPlayJsonCodecs {
 
   import RMQDefaultCodecs.stringRMQCodec
 
-  implicit def playJsonFormatRMQCodec[T] (implicit
-    fmt : Format[T]
-  ) : RMQCodec[T] = new RMQCodec[T] {
+  implicit def playJsonFormatRMQEncoder[T] (implicit
+    writes : Writes[T]
+  ) : RMQCodec.Encoder[T] = new RMQCodec.Encoder[T] {
     val contentType = Some("application/json")
-
     def encode (value : T) =
-      stringRMQCodec.encode(Json.stringify(fmt.writes(value)))
+      stringRMQCodec.encode(Json.stringify(writes.writes(value)))
+  }
 
+  implicit def playJsonFormatRMQDecoder[T] (implicit
+    reads : Reads[T]
+  ) : RMQCodec.Decoder[T] = new RMQCodec.Decoder[T] {
     def decode (array : Array[Byte]) =
-      Json.parse(stringRMQCodec.decode(array)).as(fmt)
+      Json.parse(stringRMQCodec.decode(array)).as(reads)
   }
 
 }

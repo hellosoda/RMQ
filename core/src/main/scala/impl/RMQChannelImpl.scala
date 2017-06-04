@@ -125,7 +125,7 @@ class RMQChannelImpl (
   def consume[T] (
     queue    : RMQQueue,
     consumer : RMQConsumer[T])(implicit
-    codec    : RMQCodec[T]
+    codec    : RMQCodec.Decoder[T]
   ) : Future[RMQConsumerHandle[T]] =
     mutex {
       val consumerTag = RMQConsumerTag(
@@ -148,7 +148,7 @@ class RMQChannelImpl (
   def consumeDelivery[T] (
     queue    : RMQQueue)(
     delivery : RMQConsumer.DeliveryReceiver[T])(implicit
-    codec    : RMQCodec[T],
+    codec    : RMQCodec.Decoder[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]] =
     consume[T](queue, strategy.createConsumer[T](delivery))
@@ -156,7 +156,7 @@ class RMQChannelImpl (
   def consumeDeliveryAck[T] (
     queue    : RMQQueue)(
     delivery : PartialFunction[RMQDelivery[T], Future[_]])(implicit
-    codec    : RMQCodec[T],
+    codec    : RMQCodec.Decoder[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]] =
     consumeDelivery(queue)(delivery.andThen { _.map { _ => RMQReply.Ack }})
@@ -241,7 +241,7 @@ class RMQChannelImpl (
     routingKey : RMQRoutingKey,
     properties : RMQBasicProperties,
     body       : T)(implicit
-    codec      : RMQCodec[T]
+    encoder    : RMQCodec.Encoder[T]
   ) : Future[Unit] =
     mutex {
       val pc : Option[PublisherConfirm] =
@@ -255,7 +255,7 @@ class RMQChannelImpl (
       }
 
       val props = properties.copy(
-        contentType = properties.contentType orElse codec.contentType)
+        contentType = properties.contentType orElse encoder.contentType)
 
       connection.
         waitUnblocked(). // Preempt blocking in basicPublish.
@@ -264,7 +264,7 @@ class RMQChannelImpl (
             exchange.name,
             routingKey.toString,
             props.asBasicProperties,
-            codec.encode(body))
+            encoder.encode(body))
           pc.map(_.promise.future).getOrElse(Future.unit)
         }.recoverWith {
           case NonFatal(error) =>

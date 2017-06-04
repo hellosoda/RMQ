@@ -49,14 +49,14 @@ trait RMQChannel extends java.io.Closeable {
   def consume[T] (
     queue    : RMQQueue,
     consumer : RMQConsumer[T])(implicit
-    codec    : RMQCodec[T]
+    codec    : RMQCodec.Decoder[T]
   ) : Future[RMQConsumerHandle[T]]
 
   /** Consume deliveries, with replies set by the user. **/
   def consumeDelivery[T] (
     queue    : RMQQueue)(
     delivery : RMQConsumer.DeliveryReceiver[T])(implicit
-    codec    : RMQCodec[T],
+    codec    : RMQCodec.Decoder[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]]
 
@@ -64,7 +64,7 @@ trait RMQChannel extends java.io.Closeable {
   def consumeDeliveryAck[T] (
     queue    : RMQQueue)(
     delivery : PartialFunction[RMQDelivery[T], Future[_]])(implicit
-    codec    : RMQCodec[T],
+    codec    : RMQCodec.Decoder[T],
     strategy : RMQConsumerStrategy
   ) : Future[RMQConsumerHandle[T]]
 
@@ -102,7 +102,7 @@ trait RMQChannel extends java.io.Closeable {
     queue      : RMQQueue,
     properties : RMQBasicProperties,
     body       : T)(implicit
-    codec      : RMQCodec[T]
+    encoder    : RMQCodec.Encoder[T]
   ) : Future[Unit] =
     publish(
       exchange   = RMQExchange.none,
@@ -115,7 +115,7 @@ trait RMQChannel extends java.io.Closeable {
     routingKey : RMQRoutingKey,
     properties : RMQBasicProperties,
     body       : T)(implicit
-    codec      : RMQCodec[T]
+    encoder    : RMQCodec.Encoder[T]
   ) : Future[Unit]
 
   /** Re-send all unacknowledged messages. **/

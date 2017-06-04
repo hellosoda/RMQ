@@ -1,7 +1,6 @@
 package com.hellosoda.rmq.consumers
 import com.hellosoda.rmq._
-import scala.concurrent.{
-  Future }
+import scala.concurrent.Future
 
 /** An elaborate consumer that will make use of a separate queue for the
   * purpose of redelivering a message upon failure.
@@ -15,6 +14,8 @@ abstract class OnFailureRedeliverConsumer[T] (
   val maxAttempts : Int)
     extends RMQConsumer[T]
     with    com.typesafe.scalalogging.LazyLogging {
+
+  import com.hellosoda.rmq.codecs.RMQDefaultCodecs._
 
   val `X-Retry-Attempts-Remaining` = "X-Retry-Attempts-Remaining"
 

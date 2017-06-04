@@ -1,10 +1,18 @@
 package com.hellosoda.rmq
-import com.hellosoda.rmq.codecs.RMQDefaultCodecs
 
-trait RMQCodec [T] {
-  def contentType : Option[String]
-  def encode (value : T) : Array[Byte]
-  def decode (array : Array[Byte]) : T
+trait RMQCodec[T]
+    extends RMQCodec.Encoder[T]
+    with    RMQCodec.Decoder[T]
+
+object RMQCodec {
+
+  trait Encoder[T] {
+    def contentType : Option[String]
+    def encode (value : T) : Array[Byte]
+  }
+
+  trait Decoder[T] {
+    def decode (array : Array[Byte]) : T
+  }
+
 }
-
-object RMQCodec extends RMQDefaultCodecs

@@ -12,6 +12,8 @@ class SmokeSuite
     with    Matchers
     with    ScalaFutures {
 
+  import com.hellosoda.rmq.codecs.RMQDefaultCodecs._
+
   implicit val patience = {
     import org.scalatest.time.Span._
     import scala.concurrent.duration._
