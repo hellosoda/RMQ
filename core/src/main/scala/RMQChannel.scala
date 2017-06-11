@@ -114,6 +114,18 @@ trait RMQChannel extends java.io.Closeable {
 
   def publish [T] (
     exchange   : RMQExchange,
+    properties : RMQBasicProperties,
+    body       : T)(implicit
+    encoder    : RMQCodec.Encoder[T]
+  ) : Future[Unit] =
+    publish(
+      exchange   = exchange,
+      routingKey = RMQRoutingKey.none,
+      properties = properties,
+      body       = body)
+
+  def publish [T] (
+    exchange   : RMQExchange,
     routingKey : RMQRoutingKey,
     properties : RMQBasicProperties,
     body       : T)(implicit
