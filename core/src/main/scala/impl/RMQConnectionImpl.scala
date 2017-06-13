@@ -49,8 +49,20 @@ class RMQConnectionImpl (
   def createChannel () : RMQChannel =
     new RMQChannelImpl(Try(connection.createChannel()), this)
 
+  def createChannel (confirms : Boolean) : RMQChannel = {
+    val channel = createChannel()
+    if (confirms)
+      channel.enablePublisherConfirmsSync()
+    channel
+  }
+
   def createChannelAsync () : Future[RMQChannel] =
     Future.wrap { createChannel() }
+
+  def createChannelAsync (confirms : Boolean) : Future[RMQChannel] = for {
+    channel <- createChannelAsync()
+    _ <- if (!confirms) Future.unit else channel.enablePublisherConfirms()
+  } yield channel
 
   def id : String =
     preparedConnection.get.getId()

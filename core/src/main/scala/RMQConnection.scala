@@ -27,8 +27,11 @@ trait RMQConnection extends java.io.Closeable {
     * **/
   def createChannel () : RMQChannel
 
-  /** Wraps the createChannel() method in a Future. **/
+  def createChannel (confirms : Boolean) : RMQChannel
+
   def createChannelAsync () : Future[RMQChannel]
+
+  def createChannelAsync (confirms : Boolean) : Future[RMQChannel]
 
   def id : String
 
