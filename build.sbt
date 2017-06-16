@@ -39,6 +39,17 @@ lazy val parent =
   aggregate(core).
   aggregate(`play-json`)
 
+lazy val benchmark =
+  (project in file("benchmark")).
+  settings(defaults: _*).
+  settings(libraryDependencies ++= Seq(
+    "com.github.scopt" %% "scopt" % "3.6.0")).
+  settings(
+    name         := "rmq-benchmark",
+    publish      := {},
+    publishLocal := {}).
+  dependsOn(core)
+
 lazy val core =
   (project in file("core")).
   settings(defaults: _*).
