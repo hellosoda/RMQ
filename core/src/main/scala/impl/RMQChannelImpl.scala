@@ -210,8 +210,8 @@ class RMQChannelImpl (
     mutex {
       logger.trace(s"enablePublisherConfirms: $channelInfo")
       channel.addConfirmListener(new ConfirmListenerAdapter(publisherConfirms))
-      channel.confirmSelect()
       publisherConfirmsEnabled.set(true)
+      channel.confirmSelect()
     }
 
   def enablePublisherConfirmsSync () : Unit =
