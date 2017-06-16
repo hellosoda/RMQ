@@ -19,7 +19,7 @@ lazy val defaults = Seq(
     "HelloSoda Maven Repository" at "s3://maven.hellosoda.com/releases"))
 
 lazy val dependencies = libraryDependencies ++= Seq(
-  "com.rabbitmq" % "amqp-client" % "4.1.0"
+  "com.rabbitmq" % "amqp-client" % "4.1.1"
     exclude("ch.qos.logback", "logback-classic"),
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
   "org.apache.logging.log4j" % "log4j-api"        % "2.6.1" % "test",
