@@ -14,7 +14,9 @@ lazy val defaults = Seq(
     "-Yno-adapted-args",
     "-Ywarn-dead-code",
     "-target:jvm-1.8"),
-  testOptions in Test += Tests.Argument("-oDF"))
+  testOptions in Test += Tests.Argument("-oDF"),
+  publishTo := Some(
+    "HelloSoda Maven Repository" at "s3://maven.hellosoda.com/releases"))
 
 lazy val dependencies = libraryDependencies ++= Seq(
   "com.rabbitmq" % "amqp-client" % "4.1.0"
