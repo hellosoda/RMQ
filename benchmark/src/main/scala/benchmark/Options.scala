@@ -2,7 +2,7 @@ package com.hellosoda.rmq.benchmark
 import java.net.URI
 
 case class Options (
-  val connection : URI = new URI("https://localhost/"),
+  val connection : URI = new URI("amqp://localhost/"),
   val consumerCount : Int = 1,
   val producerCount : Int = 1)
 

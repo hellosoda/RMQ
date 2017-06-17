@@ -13,7 +13,8 @@ lazy val defaults = Seq(
     "-Ydelambdafy:method",
     "-Yno-adapted-args",
     "-Ywarn-dead-code",
-    "-target:jvm-1.8"),
+    "-target:jvm-1.8",
+    "-Ybackend:GenBCode"),
   testOptions in Test += Tests.Argument("-oDF"),
   publishTo := Some(
     "HelloSoda Maven Repository" at "s3://maven.hellosoda.com/releases"))
