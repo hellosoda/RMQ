@@ -228,7 +228,7 @@ class RMQChannelImpl (
 
           case decl: RMQExchange.Declare =>
             logger.trace(
-              s"exchangeDeclare: passive=0 exchange=$decl $channelInfo")
+              s"exchangeDeclare: passive=0 exchange=$decl durable=${decl.durable} autoDelete=${decl.autoDelete} $channelInfo")
             channel.exchangeDeclare(
               decl.name,
               decl.kind.native,
@@ -252,7 +252,7 @@ class RMQChannelImpl (
             channel.queueDeclarePassive(pasv.name)
 
           case decl: RMQQueue.Declare =>
-            logger.trace(s"queueDeclare: passive=0 queue=$decl $channelInfo")
+            logger.trace(s"queueDeclare: passive=0 queue=$decl durable=${decl.durable} exclusive=${decl.exclusive} autoDelete=${decl.autoDelete} $channelInfo")
             channel.queueDeclare(
               decl.name,
               decl.durable,

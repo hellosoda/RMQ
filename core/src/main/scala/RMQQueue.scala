@@ -20,9 +20,9 @@ object RMQQueue {
 
   case class Declare (
     val name       : String  = "",
-    val durable    : Boolean = false,
-    val exclusive  : Boolean = true,
-    val autoDelete : Boolean = true,
+    val durable    : Boolean = true,
+    val exclusive  : Boolean = false,
+    val autoDelete : Boolean = false,
     val arguments  : Map[String, Any] = Map.empty)
       extends RMQQueue {
 
