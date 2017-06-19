@@ -35,7 +35,7 @@ class RMQChannelImpl (
       logger.error("Channel open failure", error)
 
     case Success(channel) =>
-      logger.debug(s"createChannel: ${channelInfo}")
+      logger.info(s"createChannel: ${channelInfo}")
   }
 
   private val publisherConfirmsEnabled = new AtomicBoolean(false)
@@ -92,7 +92,7 @@ class RMQChannelImpl (
 
   def close () : Unit =
     underlying.foreach { chan =>
-      logger.debug(s"close: $channelInfo")
+      logger.info(s"close: $channelInfo")
       chan.close()
     }
 

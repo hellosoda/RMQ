@@ -34,7 +34,7 @@ class RMQConnectionImpl (
       logger.error("Connection open failure", error)
 
     case Success(connection) =>
-      logger.debug(s"connectionOpen: address=${connection.getAddress} id=${connection.getId}")
+      logger.info(s"connectionOpen: address=${connection.getAddress} id=${connection.getId}")
   }
 
   def connection : Connection =
@@ -42,7 +42,7 @@ class RMQConnectionImpl (
 
   def close () : Unit =
     preparedConnection.foreach { conn =>
-      logger.debug(s"Connection close: id=${conn.getId}")
+      logger.info(s"Connection close: address=${connection.getAddress} id=${conn.getId}")
       conn.close()
     }
 
