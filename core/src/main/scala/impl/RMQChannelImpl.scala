@@ -170,39 +170,51 @@ class RMQChannelImpl (
 
   def declareExchange (exchange : RMQExchange) : Future[Unit] =
     mutex {
-      exchange match {
-        case pasv: RMQExchange.Passive =>
-          logger.trace(
-            s"exchangeDeclare: passive=1 exchange=$pasv $channelInfo")
-          channel.exchangeDeclarePassive(pasv.name)
+      try {
+        exchange match {
+          case pasv: RMQExchange.Passive =>
+            logger.trace(
+              s"exchangeDeclare: passive=1 exchange=$pasv $channelInfo")
+            channel.exchangeDeclarePassive(pasv.name)
 
-        case decl: RMQExchange.Declare =>
-          logger.trace(
-            s"exchangeDeclare: passive=0 exchange=$decl $channelInfo")
-          channel.exchangeDeclare(
-            decl.name,
-            decl.kind.native,
-            decl.durable,
-            decl.autoDelete,
-            decl.arguments.mapValues(_.asInstanceOf[AnyRef]).asJava)
+          case decl: RMQExchange.Declare =>
+            logger.trace(
+              s"exchangeDeclare: passive=0 exchange=$decl $channelInfo")
+            channel.exchangeDeclare(
+              decl.name,
+              decl.kind.native,
+              decl.durable,
+              decl.autoDelete,
+              decl.arguments.mapValues(_.asInstanceOf[AnyRef]).asJava)
+        }
+      } catch {
+        case NonFatal(error) =>
+          logger.error(s"declareExchange failed: ${error.getMessage}")
+          throw error
       }
     }
 
   def declareQueue (queue : RMQQueue) : Future[Unit] =
     mutex {
-      queue match {
-        case pasv: RMQQueue.Passive =>
-          logger.trace(s"queueDeclare: passive=1 queue=$pasv $channelInfo")
-          channel.queueDeclarePassive(pasv.name)
+      try {
+        queue match {
+          case pasv: RMQQueue.Passive =>
+            logger.trace(s"queueDeclare: passive=1 queue=$pasv $channelInfo")
+            channel.queueDeclarePassive(pasv.name)
 
-        case decl: RMQQueue.Declare =>
-          logger.trace(s"queueDeclare: passive=0 queue=$decl $channelInfo")
-          channel.queueDeclare(
-            decl.name,
-            decl.durable,
-            decl.exclusive,
-            decl.autoDelete,
-            decl.arguments.mapValues(_.asInstanceOf[AnyRef]).asJava)
+          case decl: RMQQueue.Declare =>
+            logger.trace(s"queueDeclare: passive=0 queue=$decl $channelInfo")
+            channel.queueDeclare(
+              decl.name,
+              decl.durable,
+              decl.exclusive,
+              decl.autoDelete,
+              decl.arguments.mapValues(_.asInstanceOf[AnyRef]).asJava)
+        }
+      } catch {
+        case NonFatal(error) =>
+          logger.error(s"declareQueue failed: ${error.getMessage}")
+          throw error
       }
     }
 
