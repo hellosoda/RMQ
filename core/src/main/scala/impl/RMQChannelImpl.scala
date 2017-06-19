@@ -64,7 +64,13 @@ class RMQChannelImpl (
   ) : Future[Unit] =
     mutex {
       logger.trace(s"basicAck: deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} $channelInfo")
-      channel.basicAck(deliveryTag.value, multiple)
+      try {
+        channel.basicAck(deliveryTag.value, multiple)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("ack failed", error)
+          throw error
+      }
     }
 
   def bindQueue (
@@ -74,17 +80,29 @@ class RMQChannelImpl (
   ) : Future[Unit] =
     lock.acquire {
       logger.trace(s"queueBind: queue=$queue exchange=$exchange routingKey=$routingKey $channelInfo")
-      channel.queueBind(
-        queue.name,
-        exchange.name,
-        routingKey.toString,
-        Map.empty.asJava)
+      try {
+        channel.queueBind(
+          queue.name,
+          exchange.name,
+          routingKey.toString,
+          Map.empty.asJava)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("bindQueue failed", error)
+          throw error
+      }
     }
 
   def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit] =
     mutex {
       logger.trace(s"basicCancel: consumerTag=$consumerTag $channelInfo")
-      channel.basicCancel(consumerTag.toString)
+      try {
+        channel.basicCancel(consumerTag.toString)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("cancelConsumer failed", error)
+          throw error
+      }
     }
 
   def channel : Channel =
@@ -93,7 +111,13 @@ class RMQChannelImpl (
   def close () : Unit =
     underlying.foreach { chan =>
       logger.info(s"close: $channelInfo")
-      chan.close()
+      try {
+        chan.close()
+      } catch {
+        case NonFatal(error) =>
+          logger.error("close failed", error)
+          throw error
+      }
     }
 
   def close (
@@ -102,7 +126,13 @@ class RMQChannelImpl (
   ) : Unit =
     underlying.foreach { chan =>
       logger.debug(s"close: code=$code message=$message $channelInfo")
-      chan.close(code, message)
+      try {
+        chan.close(code, message)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("close failed", error)
+          throw error
+      }
     }
 
   def consumeNative (
@@ -110,17 +140,23 @@ class RMQChannelImpl (
     native : Consumer
   ) : Future[RMQConsumerTag] =
     mutex {
-      val consumerTag = RMQConsumerTag(
-        channel.basicConsume(
-          queue.name,
-          false, // autoAck
-          "", // consumerTag
-          false, // noLocal
-          false, // exclusive
-          Map.empty.asJava, // arguments
-          native))
-      logger.trace(s"basicConsume: queue=$queue tag=$consumerTag $channelInfo")
+      val consumerTag = try {
+        RMQConsumerTag(
+          channel.basicConsume(
+            queue.name,
+            false, // autoAck
+            "", // consumerTag
+            false, // noLocal
+            false, // exclusive
+            Map.empty.asJava, // arguments
+            native))
+      } catch {
+        case NonFatal(error) =>
+          logger.error("consumeNative failed", error)
+          throw error
+      }
 
+      logger.trace(s"basicConsume: queue=$queue tag=$consumerTag $channelInfo")
       consumerTag
     }
 
@@ -130,15 +166,22 @@ class RMQChannelImpl (
     codec    : RMQCodec.Decoder[T]
   ) : Future[RMQConsumerHandle[T]] =
     mutex {
-      val consumerTag = RMQConsumerTag(
-        channel.basicConsume(
-          queue.name,
-          false, // autoAck
-          "", // consumerTag
-          false, // noLocal
-          false, // exclusive
-          Map.empty.asJava, // arguments
-          new ConsumerAdapter[T](this, consumer)))
+      val consumerTag = try {
+        RMQConsumerTag(
+          channel.basicConsume(
+            queue.name,
+            false, // autoAck
+            "", // consumerTag
+            false, // noLocal
+            false, // exclusive
+            Map.empty.asJava, // arguments
+            new ConsumerAdapter[T](this, consumer)))
+      } catch {
+        case NonFatal(error) =>
+          logger.error("consume failed", error)
+          throw error
+      }
+
       logger.trace(s"basicConsume: queue=$queue tag=$consumerTag $channelInfo")
 
       new RMQConsumerHandle[T](
@@ -165,7 +208,13 @@ class RMQChannelImpl (
 
   def consumerCount (queue : RMQQueue) : Future[Long] =
     mutex {
-      channel.consumerCount(queue.name)
+      try {
+        channel.consumerCount(queue.name)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("consumerCount failed", error)
+          throw error
+      }
     }
 
   def declareExchange (exchange : RMQExchange) : Future[Unit] =
@@ -189,7 +238,7 @@ class RMQChannelImpl (
         }
       } catch {
         case NonFatal(error) =>
-          logger.error(s"declareExchange failed: ${error.getMessage}")
+          logger.error(s"declareExchange failed", error)
           throw error
       }
     }
@@ -213,7 +262,7 @@ class RMQChannelImpl (
         }
       } catch {
         case NonFatal(error) =>
-          logger.error(s"declareQueue failed: ${error.getMessage}")
+          logger.error(s"declareQueue failed", error)
           throw error
       }
     }
@@ -221,9 +270,16 @@ class RMQChannelImpl (
   def enablePublisherConfirms () : Future[Unit] =
     mutex {
       logger.trace(s"enablePublisherConfirms: $channelInfo")
-      channel.addConfirmListener(new ConfirmListenerAdapter(publisherConfirms))
-      publisherConfirmsEnabled.set(true)
-      channel.confirmSelect()
+      try {
+        channel.addConfirmListener(
+          new ConfirmListenerAdapter(publisherConfirms))
+        publisherConfirmsEnabled.set(true)
+        channel.confirmSelect()
+      } catch {
+        case NonFatal(error) =>
+          logger.error("enablePublisherConfirms failed", error)
+          throw error
+      }
     }
 
   def enablePublisherConfirmsSync () : Unit =
@@ -231,7 +287,13 @@ class RMQChannelImpl (
 
   def messageCount (queue : RMQQueue) : Future[Long] =
     mutex {
-      channel.messageCount(queue.name)
+      try {
+        channel.messageCount(queue.name)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("messageCount failed", error)
+          throw error
+      }
     }
 
   def mutex[T] (f : => T) : Future[T] =
@@ -244,13 +306,25 @@ class RMQChannelImpl (
   ) : Future[Unit] =
     mutex {
       logger.trace(s"basicNack: deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} requeue=${if (requeue) 1 else 0} $channelInfo")
-      channel.basicNack(deliveryTag.value, multiple, requeue)
+      try {
+        channel.basicNack(deliveryTag.value, multiple, requeue)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("nack failed", error)
+          throw error
+      }
     }
 
   def setQos (qos : Int) : Future[Unit] =
     mutex {
       logger.trace(s"basicQos: qos=$qos $channelInfo")
-      channel.basicQos(qos)
+      try {
+        channel.basicQos(qos)
+      } catch {
+        case NonFatal(error) =>
+          logger.error("setQos failed", error)
+          throw error
+      }
     }
 
   def publish [T] (
