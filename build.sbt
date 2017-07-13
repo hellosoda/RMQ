@@ -43,10 +43,12 @@ lazy val parent =
   (project in file(".")).
   settings(defaults: _*).
   settings(
-    name          := "rmq-parent",
-    publish       := {},
-    publishLocal  := {},
-    publishSigned := {}).
+    name            := "rmq-parent",
+    publish         := {},
+    publishLocal    := {},
+    publishArtifact := false,
+    publishTo       := Some(
+      Resolver.file("UnusedRepository", file("target/UnusedRepository")))).
   aggregate(core).
   aggregate(`play-json`)
 
@@ -72,13 +74,15 @@ lazy val `play-json` =
 //
 
 def getVersion () : String = {
-  val base = ("git describe --tags --always" !!).trim
+  val base = ("git describe --tags --always --dirty" !!).trim
   val hashOnly = "(^[0-9a-z]$)".r
-  val offset   = "^(.*?)\\-[0-9]+\\-[0-9a-z]+".r
+  val offset = "^(.*?)\\-[0-9]+\\-[0-9a-z]+".r
+  val isDirty = "^(.*?)(?:\\-[0-9]+\\-[0-9a-z]+)?(?:\\-dirty)".r
 
   ("git describe --tags --always" !!).trim match {
-    case hashOnly(hash) => hash
+    case hashOnly(hash) => s"$hash-SNAPSHOT"
     case offset(version) => s"$version-SNAPSHOT"
+    case isDirty(version) => s"$version-SNAPSHOT"
     case other => other
   }
 }
