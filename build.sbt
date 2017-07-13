@@ -43,22 +43,12 @@ lazy val parent =
   (project in file(".")).
   settings(defaults: _*).
   settings(
-    name         := "rmq-parent",
-    publish      := {},
-    publishLocal := {}).
+    name          := "rmq-parent",
+    publish       := {},
+    publishLocal  := {},
+    publishSigned := {}).
   aggregate(core).
   aggregate(`play-json`)
-
-lazy val benchmark =
-  (project in file("benchmark")).
-  settings(defaults: _*).
-  settings(libraryDependencies ++= Seq(
-    "com.github.scopt" %% "scopt" % "3.6.0")).
-  settings(
-    name         := "rmq-benchmark",
-    publish      := {},
-    publishLocal := {}).
-  dependsOn(core)
 
 lazy val core =
   (project in file("core")).
