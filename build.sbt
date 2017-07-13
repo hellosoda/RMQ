@@ -1,8 +1,10 @@
 lazy val defaults = Seq(
   organization := "com.hellosoda.rmq",
+  startYear    := Some(2017),
   version      := getVersion(),
   scalaVersion := "2.11.11",
-  crossScalaVersions := Seq("2.11.11"),
+  sonatypeProfileName := "com.hellosoda",
+  crossScalaVersions   := Seq("2.11.11"),
   scalacOptions in Compile ++= Seq(
     "-encoding", "utf-8",
     "-feature",
@@ -29,13 +31,22 @@ lazy val publishing = Seq(
   publishArtifact in Test := false,
   useGpg := true,
   licenses := Seq(
-    "Apache 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0.html")),
+    "Apache License, Version 2.0" ->
+    url("http://www.apache.org/licenses/LICENSE-2.0.html")),
   homepage := Some(url("https://github.com/hellosoda/RMQ")),
+  organizationName := "Soda Software Labs Ltd.",
+  organizationHomepage := Some(url("http://hellosoda.com")),
   scmInfo := Some(ScmInfo(
     url("https://github.com/hellosoda/RMQ"),
     "scm:git@github.com:hellosoda/RMQ.git")),
   pgpSigningKey := Some(3400552037L),
-  publishTo := Some(sonatypeDefaultResolver.value))
+  publishTo := Some(sonatypeDefaultResolver.value),
+  developers := List(
+    Developer(
+      id    = "rmq-contributors",
+      name  = "RMQ Contributors",
+      email = "admin@hellosoda.com",
+      url   = url("https://github.com/hellosoda/RMQ"))))
 
 //
 
