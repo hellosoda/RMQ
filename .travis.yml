@@ -10,6 +10,17 @@ services:
   - rabbitmq
 git:
   depth: 1
+cache:
+  directories:
+    - $HOME/.sbt
+    - $HOME/.ivy2/cache
+    - $HOME/.m2
+before_cache:
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - find $HOME/.ivy2 -name "resolved-*.properties" -delete
+  - find $HOME/.ivy2 -name "resolved-*.xml" -delete
+  - find $HOME/.sbt $HOME/.ivy2 -name "*.lock" -delete
+  - find $HOME/.sbt -name "*.log" -delete
 before_script:
   - sbt test:compile
 script:
