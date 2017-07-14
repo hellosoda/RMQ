@@ -1,0 +1,16 @@
+sudo: false
+language: scala
+scala:
+  - 2.11.8
+jdk:
+  - oraclejdk8
+os:
+  - linux
+services:
+  - rabbitmq
+git:
+  depth: 1
+before_script:
+  - sbt test:compile
+script:
+  - sbt test
