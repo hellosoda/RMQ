@@ -63,12 +63,13 @@ class RMQChannelImpl (
     multiple    : Boolean
   ) : Future[Unit] =
     mutex {
-      logger.trace(s"basicAck: deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} $channelInfo")
+      lazy val msg = s"deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} $channelInfo"
+      logger.trace(s"basicAck: $msg")
       try {
         channel.basicAck(deliveryTag.value, multiple)
       } catch {
         case NonFatal(error) =>
-          logger.error("ack failed", error)
+          logger.error(s"ack failed: $msg", error)
           throw error
       }
     }
@@ -79,7 +80,8 @@ class RMQChannelImpl (
     routingKey : RMQRoutingKey
   ) : Future[Unit] =
     lock.acquire {
-      logger.trace(s"queueBind: queue=$queue exchange=$exchange routingKey=$routingKey $channelInfo")
+      lazy val msg = s"queue=$queue exchange=$exchange routingKey=$routingKey $channelInfo"
+      logger.trace(s"queueBind: $msg")
       try {
         channel.queueBind(
           queue.name,
@@ -88,19 +90,20 @@ class RMQChannelImpl (
           Map.empty.asJava)
       } catch {
         case NonFatal(error) =>
-          logger.error("bindQueue failed", error)
+          logger.error(s"bindQueue failed: $msg", error)
           throw error
       }
     }
 
   def cancelConsumer (consumerTag : RMQConsumerTag) : Future[Unit] =
     mutex {
-      logger.trace(s"basicCancel: consumerTag=$consumerTag $channelInfo")
+      lazy val msg = s"consumerTag=$consumerTag $channelInfo"
+      logger.trace(s"basicCancel: $msg")
       try {
         channel.basicCancel(consumerTag.toString)
       } catch {
         case NonFatal(error) =>
-          logger.error("cancelConsumer failed", error)
+          logger.error(s"cancelConsumer failed: $msg", error)
           throw error
       }
     }
@@ -115,7 +118,7 @@ class RMQChannelImpl (
         chan.close()
       } catch {
         case NonFatal(error) =>
-          logger.error("close failed", error)
+          logger.error(s"close failed: $channelInfo", error)
           throw error
       }
     }
@@ -125,12 +128,13 @@ class RMQChannelImpl (
     message : String
   ) : Unit =
     underlying.foreach { chan =>
-      logger.debug(s"close: code=$code message=$message $channelInfo")
+      lazy val msg = s"code=$code message=$message $channelInfo"
+      logger.debug(s"close: $msg")
       try {
         chan.close(code, message)
       } catch {
         case NonFatal(error) =>
-          logger.error("close failed", error)
+          logger.error(s"close failed: $msg", error)
           throw error
       }
     }
@@ -140,6 +144,8 @@ class RMQChannelImpl (
     native : Consumer
   ) : Future[RMQConsumerTag] =
     mutex {
+      lazy val msg = s"queue=$queue $channelInfo"
+
       val consumerTag = try {
         RMQConsumerTag(
           channel.basicConsume(
@@ -152,11 +158,11 @@ class RMQChannelImpl (
             native))
       } catch {
         case NonFatal(error) =>
-          logger.error("consumeNative failed", error)
+          logger.error(s"consumeNative failed: $msg", error)
           throw error
       }
 
-      logger.trace(s"basicConsume: queue=$queue tag=$consumerTag $channelInfo")
+      logger.trace(s"basicConsume: $msg")
       consumerTag
     }
 
@@ -166,6 +172,8 @@ class RMQChannelImpl (
     codec    : RMQCodec.Decoder[T]
   ) : Future[RMQConsumerHandle[T]] =
     mutex {
+      lazy val msg = s"queue=$queue $channelInfo"
+
       val consumerTag = try {
         RMQConsumerTag(
           channel.basicConsume(
@@ -178,11 +186,11 @@ class RMQChannelImpl (
             new ConsumerAdapter[T](this, consumer)))
       } catch {
         case NonFatal(error) =>
-          logger.error("consume failed", error)
+          logger.error(s"consume failed: $msg", error)
           throw error
       }
 
-      logger.trace(s"basicConsume: queue=$queue tag=$consumerTag $channelInfo")
+      logger.trace(s"basicConsume: $msg")
 
       new RMQConsumerHandle[T](
         consumerTag = consumerTag,
@@ -212,7 +220,7 @@ class RMQChannelImpl (
         channel.consumerCount(queue.name)
       } catch {
         case NonFatal(error) =>
-          logger.error("consumerCount failed", error)
+          logger.error(s"consumerCount failed: queue=$queue", error)
           throw error
       }
     }
@@ -238,7 +246,7 @@ class RMQChannelImpl (
         }
       } catch {
         case NonFatal(error) =>
-          logger.error(s"declareExchange failed", error)
+          logger.error(s"declareExchange failed: exchange=$exchange $channelInfo", error)
           throw error
       }
     }
@@ -262,7 +270,7 @@ class RMQChannelImpl (
         }
       } catch {
         case NonFatal(error) =>
-          logger.error(s"declareQueue failed", error)
+          logger.error(s"declareQueue failed: queue=$queue $channelInfo", error)
           throw error
       }
     }
@@ -277,7 +285,7 @@ class RMQChannelImpl (
         channel.confirmSelect()
       } catch {
         case NonFatal(error) =>
-          logger.error("enablePublisherConfirms failed", error)
+          logger.error(s"enablePublisherConfirms failed: $channelInfo", error)
           throw error
       }
     }
@@ -291,7 +299,7 @@ class RMQChannelImpl (
         channel.messageCount(queue.name)
       } catch {
         case NonFatal(error) =>
-          logger.error("messageCount failed", error)
+          logger.error(s"messageCount failed: queue=$queue $channelInfo", error)
           throw error
       }
     }
@@ -305,24 +313,27 @@ class RMQChannelImpl (
     requeue     : Boolean = false
   ) : Future[Unit] =
     mutex {
-      logger.trace(s"basicNack: deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} requeue=${if (requeue) 1 else 0} $channelInfo")
+      lazy val msg = s"deliveryTag=$deliveryTag multiple=${if (multiple) 1 else 0} requeue=${if (requeue) 1 else 0} $channelInfo"
+
+      logger.trace(s"basicNack: $msg")
       try {
         channel.basicNack(deliveryTag.value, multiple, requeue)
       } catch {
         case NonFatal(error) =>
-          logger.error("nack failed", error)
+          logger.error(s"nack failed: $msg", error)
           throw error
       }
     }
 
   def setQos (qos : Int) : Future[Unit] =
     mutex {
-      logger.trace(s"basicQos: qos=$qos $channelInfo")
+      lazy val msg = s"qos=$qos $channelInfo"
+      logger.trace(s"basicQos: $msg")
       try {
         channel.basicQos(qos)
       } catch {
         case NonFatal(error) =>
-          logger.error("setQos failed", error)
+          logger.error(s"setQos failed: $msg", error)
           throw error
       }
     }
